@@ -1,0 +1,135 @@
+.page-shell { min-height: 100svh; display: grid; place-items: center; padding: 36px 24px; background: radial-gradient(ellipse at top left, #dce9e0, transparent 60%), #f1f3ee; }
+.wizard { display: grid; grid-template-columns: 290px minmax(0, 1fr); width: min(1060px, 100%); min-height: 740px; background: white; border-radius: 22px; overflow: hidden; box-shadow: 0 24px 80px #183c2c14, 0 0 0 1px #2146340b; }
+.wizard-sidebar { display: flex; flex-direction: column; padding: 36px 28px 24px; background: #164b3b; color: #fff; }
+.brand-mark { display: grid; place-items: center; width: 42px; height: 42px; margin-bottom: 30px; border: 1px solid #ffffff35; border-radius: 13px; color: #e5c68a; font-size: 30px; }
+.form-header p, .eyebrow { margin: 0; letter-spacing: .16em; font-size: 10px; font-weight: 700; }
+.form-header p { color: #d2bd8c; }
+.form-header h1 { margin: 16px 0 14px; font: 400 33px/1.17 Georgia, serif; letter-spacing: -.8px; }
+.form-header > span { display: block; max-width: 220px; color: #b9d0c4; font-size: 13px; line-height: 1.7; }
+.progress { display: grid; gap: 8px; margin-top: 32px; }
+.progress-step { position: relative; display: flex; gap: 12px; align-items: center; padding: 12px 10px; border-radius: 10px; color: #bed0c7; }
+.progress-step > span { flex-shrink: 0; display: grid; place-items: center; width: 32px; height: 32px; border: 1px solid #ffffff30; border-radius: 50%; font-size: 11px; font-weight: 600; }
+.progress-step small { display: block; font-size: 12px; font-weight: 600; }.progress-step em { display: block; margin-top: 4px; font-size: 10px; font-style: normal; color: #a4c0b2; }
+.progress-step.active { background: #ffffff12; color: white; }.progress-step.active > span { color: #1f402e; background: #dfbf81; border-color: #dfbf81; }.progress-step.active em { color: #dfbf81; }.progress-step.done > span { background: #ffffff16; color: #e1c58d; }
+.sidebar-note { display: flex; align-items: center; gap: 12px; margin-top: auto; padding-top: 36px; color: #aac5b7; }.sidebar-note > span { font-size: 26px; color: #d4bb88; }.sidebar-note p { margin: 0; font-size: 11px; line-height: 1.7; }
+.wizard-main { display: flex; flex-direction: column; min-width: 0; padding: 30px 42px 18px; }
+.topline { display: flex; justify-content: space-between; align-items: center; gap: 12px; color: #748277; font-size: 11px; }.step-pill { background: #f1f5ef; color: #43634e; padding: 7px 11px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+.progress-track { height: 3px; margin-top: 17px; border-radius: 4px; overflow: hidden; background: #edf0e9; }.progress-track > span { display: block; height: 100%; background: #bc9451; transition: width .3s ease; }
+.step-content { flex: 1; padding: 34px 0 25px; }.eyebrow { color: #99753e; }.step-content h2 { margin: 10px 0; color: #204934; font: 400 clamp(26px, 3vw, 34px)/1.15 Georgia, serif; letter-spacing: -.7px; }.step-hint { margin: 0; color: #718074; font-size: 13px; line-height: 1.6; }.required-hint { margin: 18px 0 0; color: #849086; font-size: 10px; }.required-hint b, .required { color: #a07d43; }
+.step-panel { border: 0; padding: 0; margin: 0; min-width: 0; }.step-panel[hidden] { display: none; }.fields { display: grid; gap: 19px 18px; margin-top: 22px; }.two-columns { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }.full { grid-column: 1 / -1; }
+.field { display: flex; min-width: 0; flex-direction: column; gap: 8px; color: #394e40; font-size: 11px; font-weight: 600; }.required { font-weight: 600; }
+input, select { width: 100%; min-width: 0; height: 45px; border: 1px solid #dce3da; border-radius: 8px; padding: 0 12px; background: #fafbf8; color: #284535; font: 400 12px/1.4 system-ui, sans-serif; outline: none; transition: border-color .15s, box-shadow .15s; }input::placeholder { color: #96a095; opacity: 1; }input:hover, select:hover { border-color: #b9c8b7; }input:focus, select:focus { border-color: #8caa8c; background: #fff; box-shadow: 0 0 0 3px #5d8b6612; }input[type=date] { color-scheme: light; }
+.gentle-note { margin-top: 5px; padding: 17px; border: 1px solid #e8e2d2; border-radius: 10px; background: #fbf9f2; color: #7c7156; font-size: 12px; line-height: 1.8; }.gentle-note strong { display: block; color: #6b603d; }
+.form-actions { display: flex; justify-content: space-between; gap: 12px; padding-top: 20px; border-top: 1px solid #edf0e9; }button { border: 1px solid transparent; border-radius: 8px; padding: 12px 20px; background: #1b513c; color: white; cursor: pointer; font: 600 12px/1.4 system-ui, sans-serif; transition: background .15s, transform .15s; }button:hover { background: #2b664c; transform: translateY(-1px); }button:focus-visible { outline: 3px solid #c5a05e; outline-offset: 3px; }.secondary { border-color: #dce3da; color: #68786a; background: #fff; }.secondary:hover { background: #f4f7f0; }.bottom-note { margin: 22px 0 0; text-align: center; color: #9ca59a; font-size: 9px; }
+.success-card { width: min(530px, 100%); padding: 52px 35px; background: white; border-radius: 22px; text-align: center; box-shadow: 0 24px 80px #183c2c14; }.check { display: grid; place-items: center; width: 60px; height: 60px; margin: 0 auto 25px; border-radius: 50%; color: #27583d; background: #eaf2e5; font-size: 26px; }.success-card h1 { font: 400 34px Georgia, serif; color: #204934; }.success-card > p:not(.eyebrow) { color: #718074; font-size: 14px; line-height: 1.8; margin-bottom: 26px; }
+@media (min-width: 1400px) { .wizard { min-height: 780px; }.wizard-main { padding: 36px 52px 24px; }.step-content { padding-top: 42px; }.fields { gap: 23px 20px; }input, select { height: 48px; } }
+@media (max-width: 760px) { .page-shell { padding: 18px 12px; }.wizard { grid-template-columns: 1fr; min-height: auto; border-radius: 16px; }.wizard-sidebar { padding: 20px 24px; }.form-header { position: relative; padding-left: 48px; }.brand-mark { position: absolute; left: 0; top: 0; width: 32px; height: 32px; font-size: 23px; margin: 0; }.form-header h1 { margin: 6px 0 0; font-size: 23px; }.form-header h1 br { display: none; }.form-header > span, .sidebar-note { display: none; }.form-header p { font-size: 8px; }.progress { display: flex; margin-top: 20px; gap: 8px; }.progress-step { flex: 1; justify-content: center; padding: 6px 0; gap: 0; }.progress-step > div { display: none; }.progress-step > span { width: 27px; height: 27px; font-size: 10px; }.wizard-main { padding: 22px 24px; }.step-content { padding-top: 26px; }.bottom-note { line-height: 1.6; } }
+@media (max-width: 420px) { .two-columns { grid-template-columns: 1fr; }.page-shell { padding: 10px 8px; }.wizard-main { padding-inline: 20px; }.step-content h2 { font-size: 28px; }.fields { gap: 17px; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
+
+/* Paleta clara y neutra para dar protagonismo al formulario. */
+.page-shell { background: #f7f8f7; }
+.wizard { background: #fff; border: 1px solid #ecefed; box-shadow: 0 12px 45px #1e302608; }
+.wizard-sidebar { background: #fff; color: #27342d; border-right: 1px solid #edf0ed; }
+.form-header p, .eyebrow { color: #7b8f81; }
+.form-header h1 { color: #27342d; font-family: system-ui, sans-serif; font-size: 26px; font-weight: 600; letter-spacing: -.8px; }
+.form-header > span { color: #7d8981; }
+.progress-step { color: #7f8b83; }
+.progress-step > span { border-color: #dfe7e1; color: #87958b; }
+.progress-step em { color: #929d95; }
+.progress-step.active { color: #334f3d; background: #f3f7f3; }
+.progress-step.active > span { color: #fff; background: #718f7b; border-color: #718f7b; }
+.progress-step.active em { color: #718f7b; }
+.progress-step.done > span { background: #edf4ee; border-color: #edf4ee; color: #6f907a; }
+.topline { color: #849188; }
+.step-pill { background: #f5f7f5; color: #71877a; }
+.progress-track { background: #eef1ee; }
+.progress-track > span { background: #9ab4a0; }
+.step-content h2 { color: #29372e; font-family: system-ui, sans-serif; font-weight: 600; letter-spacing: -1px; }
+.step-hint, .required-hint { color: #7e8a81; }
+.required-hint b, .required { color: #799681; }
+.field { color: #47564b; font-size: 12px; }
+input, select { background: #fff; border-color: #e0e7e1; color: #34483a; }
+input:hover, select:hover { border-color: #b8cabc; }
+input:focus, select:focus { border-color: #91ae98; box-shadow: 0 0 0 3px #9db9a326; }
+.form-actions { border-color: #eef1ee; }
+button { background: #75947e; }
+button:hover { background: #64836d; }
+button:focus-visible { outline-color: #91ae98; }
+.secondary { background: #fff; border-color: #e0e7e1; color: #718076; }
+.secondary:hover { background: #f6f8f6; }
+.success-card { box-shadow: 0 12px 45px #1e302608; }
+.success-card h1 { color: #29372e; font-family: system-ui, sans-serif; font-weight: 600; }
+@media (max-width: 760px) {
+  .wizard-sidebar { border-right: 0; border-bottom: 1px solid #edf0ed; }
+  .form-header { padding-left: 0; }
+  .form-header h1 { font-size: 21px; }
+}
+@media (max-width: 760px) {
+  .progress { flex-wrap: wrap; }
+  .progress-step { flex: 1 1 auto; padding: 8px; }
+  .progress-step > div { display: block; }
+  .progress-step small { font-size: 10px; }
+  .progress-step em { display: none; }
+}
+.birth-date-selects { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.3fr) minmax(0, 1fr); gap: 6px; }
+.birth-date-selects select { padding-inline: 5px; }
+.input-affix { display: flex; align-items: center; min-width: 0; height: 45px; border: 1px solid #e0e7e1; border-radius: 8px; background: #fff; transition: border-color .15s, box-shadow .15s; }
+.input-affix:focus-within { border-color: #91ae98; box-shadow: 0 0 0 3px #9db9a326; }
+.input-affix > span { flex: none; padding: 0 10px; color: #718076; font-size: 12px; font-weight: 400; }
+.input-affix > input { flex: 1; height: 100%; border: 0; background: transparent; box-shadow: none; }
+.input-affix > input:focus { box-shadow: none; }
+.wizard { grid-template-columns: minmax(0, 1fr); width: min(770px, 100%); }
+.baptism-check { display: flex; align-items: center; gap: 10px; color: #47564b; font-size: 12px; font-weight: 600; cursor: pointer; }
+.baptism-check input { width: 17px; height: 17px; margin: 0; accent-color: #75947e; }
+select:disabled { background: #f5f7f5; color: #8b978d; cursor: not-allowed; }
+
+/* Mantener los campos alineados y dar suficiente espacio a las fechas. */
+.wizard { min-height: 0; }
+.wizard-main { padding: 32px clamp(22px, 5vw, 52px) 28px; }
+.step-content { padding: 32px 0 28px; }
+.fields { gap: 22px 20px; margin-top: 28px; }
+.field { gap: 8px; font-size: 13px; }
+input, select, .input-affix { height: 48px; }
+.input-affix > input { height: 100%; }
+.birth-date-selects { grid-template-columns: 1fr 1.5fr 1fr; gap: 10px; }
+.birth-date-selects select { padding-inline: 10px; }
+.baptism-check { padding: 16px; border: 1px solid #e8eee9; border-radius: 8px; background: #fafcfa; font-size: 13px; }
+.form-actions { padding-top: 24px; }
+@media (max-width: 420px) {
+  .wizard-main { padding: 22px 20px; }
+  .fields { gap: 18px; }
+  .birth-date-selects { grid-template-columns: minmax(0, .9fr) minmax(0, 1.3fr) minmax(0, 1fr); gap: 6px; }
+  .birth-date-selects select { padding-inline: 5px; }
+}
+
+/* Tamaños cómodos de lectura y toque para cada pantalla. */
+.topline { font-size: 13px; }
+.field { font-size: 14px; }
+input, select { font-size: 15px; }
+.input-affix > span { font-size: 14px; }
+.form-actions button { min-height: 48px; font-size: 14px; }
+.baptism-check input { width: 20px; height: 20px; }
+
+@media (max-width: 600px) {
+  .page-shell { display: block; padding: 12px; }
+  .wizard { width: 100%; border-radius: 14px; }
+  .wizard-main { padding: 24px 20px; }
+  .step-content { padding: 26px 0 24px; }
+  .step-content h2 { font-size: 26px; line-height: 1.2; }
+  .two-columns { grid-template-columns: minmax(0, 1fr); }
+  .full { grid-column: auto; }
+  .fields { gap: 19px; margin-top: 24px; }
+  input, select { font-size: 16px; }
+  .birth-date-selects { grid-template-columns: minmax(0, .9fr) minmax(0, 1.4fr) minmax(0, 1fr); gap: 8px; }
+  .birth-date-selects select { padding-inline: 6px; }
+  .form-actions button { flex: 1; }
+  .form-actions > span { display: none; }
+  .success-card { margin: 0 auto; padding: 40px 22px; }
+}
+
+@media (min-width: 601px) and (max-width: 1024px) {
+  .page-shell { padding: 28px; }
+  .wizard { width: min(720px, 100%); }
+  .wizard-main { padding: 32px 38px; }
+}

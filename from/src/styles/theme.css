@@ -1,0 +1,470 @@
+:root {
+  --surface: #ffffff;
+  --canvas: #f7f8fb;
+  --ink: #202c42;
+  --muted: #657187;
+  --line: #e2e7ef;
+  --brand: #18366b;
+  --brand-hover: #102750;
+  --tint: #f0f4fb;
+  --focus: #7698d1;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  background: var(--canvas);
+  color-scheme: light;
+  -webkit-font-smoothing: antialiased;
+}
+
+body, button, input, select { font-family: inherit; }
+button, input, select { font-size: 14px; }
+.page-shell, .login-page, .admin-shell { background: var(--canvas); color: var(--ink); }
+.wizard, .login-card, .success-card, .members-card, .church-form, .admin-sidebar { background: var(--surface); border-color: var(--line); }
+.wizard, .login-card, .success-card { box-shadow: 0 12px 40px #182d4b06; }
+.members-card, .church-form { box-shadow: none; }
+.step-content h2, .success-card h1, .login-heading h1, .admin-welcome h1 { color: var(--ink); font-family: inherit; font-weight: 600; letter-spacing: -.7px; line-height: 1.25; }
+.members-heading h2, .church-actions h2, .church-form h3, .empty-members h3, .sidebar-brand strong, .account-details strong { color: var(--ink); font-weight: 600; }
+.field, .admin-field, .baptism-check { color: var(--ink); font-size: 14px; font-weight: 500; }
+.topline, .step-hint, .required-hint, .login-heading > p:last-child, .admin-welcome > div > p:last-child, .members-heading p, .church-actions p, .sidebar-brand small, .account-details span, .input-affix > span, .success-card > p:not(.eyebrow), .empty-members p, .admin-footer, .google-notice { color: var(--muted); }
+.eyebrow, .admin-kicker, .required { color: var(--brand); }
+
+input, select, .admin-field input, .admin-field select { background: var(--surface); border-color: var(--line); color: var(--ink); border-radius: 8px; font-weight: 400; }
+input::placeholder { color: #748096; opacity: 1; }
+input:hover, select:hover { border-color: #bac7dc; }
+input:focus, select:focus { border-color: var(--focus); background: var(--surface); box-shadow: 0 0 0 3px #18366b12; }
+.input-affix, .search-box { background: var(--surface); border-color: var(--line); color: var(--muted); }
+.input-affix:focus-within, .search-box:focus-within { border-color: var(--focus); box-shadow: 0 0 0 3px #18366b12; }
+.input-affix > input, .search-box input { background: transparent; border: 0; box-shadow: none; }
+.input-affix > input:focus, .search-box input:focus { background: transparent; box-shadow: none; }
+select:disabled { background: #f5f6f8; border-color: var(--line); color: #8892a3; }
+
+button, .admin-primary { background: var(--brand); color: #fff; font-weight: 600; }
+button:hover, .admin-primary:hover { background: var(--brand-hover); transform: none; }
+button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.secondary, .google-login, .category-button, .empty-action, .sidebar-toggle { background: var(--surface); border-color: var(--line); color: var(--brand); }
+.secondary:hover, .google-login:hover, .category-button:hover, .empty-action:hover, .sidebar-toggle:hover { background: var(--tint); color: var(--brand); border-color: #c8d5ea; }
+.category-button.is-active { background: var(--tint); color: var(--brand); border-color: #bdcde4; }
+.sidebar-item, .sidebar-logout, .back-link { background: transparent; color: var(--muted); }
+.sidebar-item:hover, .sidebar-item.is-active, .sidebar-logout:hover { background: var(--tint); color: var(--brand); }
+.back-link:hover { background: transparent; color: var(--brand); }
+.sidebar-nav .sidebar-item-icon { background: transparent; color: inherit; }
+.sidebar-item-icon ion-icon { font-size: 20px; }
+.sidebar-brand, .sidebar-account, .form-actions { border-color: var(--line); }
+.account-avatar, .check, .empty-icon { background: var(--tint); color: var(--brand); }
+.progress-track { background: #edf0f6; }
+.progress-track > span { background: #7792bd; }
+.baptism-check { background: #fafbfe; border-color: var(--line); }
+.baptism-check input { accent-color: var(--brand); }
+.demo-note { background: #fafbfe; border-color: var(--line); color: var(--muted); }
+.login-divider { color: var(--muted); }
+.login-divider::before, .login-divider::after { background: var(--line); }
+.member-count { background: #f4f6fa; color: var(--muted); }
+.church-table th { background: #fafbfe; border-color: var(--line); color: var(--muted); font-size: 12px; }
+.church-table td { border-color: #edf0f5; color: var(--ink); }
+.church-empty { color: var(--muted) !important; }
+.church-row-actions button, .church-row-actions button:hover { background: transparent; color: var(--brand); }
+.church-row-actions .annul-action, .church-row-actions .annul-action:hover, .church-error { color: #a14545; }
+.church-status.active { background: var(--tint); color: var(--brand); }
+.church-status.inactive { background: #f7f0f0; color: #8b5555; }
+
+@media (max-width: 600px) {
+  input, select, .admin-field input, .admin-field select, .search-box input, .church-form-fields input, .church-form-fields select { font-size: 16px; }
+}
+.login-page {
+  background: linear-gradient(#101b2e80, #101b2e80), url('../assets/login-paisaje-andino.png') center / cover no-repeat;
+}
+.login-card { background: rgb(255 255 255 / 88%); border-color: rgb(255 255 255 / 45%); box-shadow: 0 18px 60px #10244c40; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.login-form { margin-top: 0; }
+.admin-main {
+  background: linear-gradient(rgb(247 248 251 / 68%), rgb(247 248 251 / 68%)), url('../assets/panel-paisaje-andino.png') center / cover no-repeat;
+  min-height: 100svh;
+}
+.theme-toggle { margin-top: auto; }
+.theme-icon { display: grid; flex: 0 0 26px; width: 26px; height: 26px; place-items: center; font-size: 20px; }
+.sidebar-account { margin-top: 0; }
+.sidebar-collapsed .theme-toggle { justify-content: center; padding-inline: 0; }
+[data-theme='dark'] {
+  --surface: #111111;
+  --canvas: #080808;
+  --ink: #eeeeee;
+  --muted: #aaaaaa;
+  --line: #292929;
+  --brand: #dddddd;
+  --brand-hover: #f0f0f0;
+  --tint: #1c1c1c;
+  --focus: #909090;
+  color-scheme: dark;
+}
+[data-theme='dark'] .admin-main { background: radial-gradient(ellipse at top right, rgb(118 152 209 / 12%), transparent 55%), linear-gradient(rgb(0 0 0 / 78%), rgb(0 0 0 / 86%)), url('../assets/panel-paisaje-andino.png') center / cover no-repeat; }
+[data-theme='dark'] .wizard, [data-theme='dark'] .members-card, [data-theme='dark'] .church-form, [data-theme='dark'] .success-card { box-shadow: 0 12px 40px #0002; }
+[data-theme='dark'] .admin-sidebar { background: var(--surface); border-color: var(--line); }
+[data-theme='dark'] .sidebar-church-logo, [data-theme='dark'] .form-brand img { background: #fff; border-radius: 4px; padding: 2px; }
+[data-theme='dark'] input::placeholder { color: #999999; }
+[data-theme='dark'] select:disabled { background: #1c1c1c; color: #888888; }
+[data-theme='dark'] button:where(:not(.secondary):not(.sidebar-item):not(.sidebar-logout):not(.sidebar-toggle):not(.back-link):not(.category-button):not(.empty-action):not(.annul-action)) { color: #111111; }
+[data-theme='dark'] .sidebar-item, [data-theme='dark'] .sidebar-logout, [data-theme='dark'] .sidebar-toggle, [data-theme='dark'] .back-link, [data-theme='dark'] .category-button, [data-theme='dark'] .secondary { color: var(--ink); }
+[data-theme='dark'] .sidebar-item:hover, [data-theme='dark'] .sidebar-item.is-active, [data-theme='dark'] .sidebar-logout:hover, [data-theme='dark'] .sidebar-toggle:hover, [data-theme='dark'] .category-button.is-active, [data-theme='dark'] .category-button:hover, [data-theme='dark'] .secondary:hover { background: var(--tint); color: var(--ink); border-color: #3a3a3a; }
+[data-theme='dark'] .baptism-check, [data-theme='dark'] .church-table th { background: #191919; border-color: var(--line); }
+[data-theme='dark'] .church-table td { border-color: var(--line); }
+[data-theme='dark'] .church-row-actions button, [data-theme='dark'] .church-row-actions button:hover { color: #dddddd !important; background: transparent; }
+[data-theme='dark'] .church-row-actions .annul-action, [data-theme='dark'] .church-row-actions .annul-action:hover, [data-theme='dark'] .church-error { color: #ffb4a9 !important; }
+[data-theme='dark'] .member-count, [data-theme='dark'] .church-status.active { background: #222222; color: #dddddd; }
+[data-theme='dark'] .church-status.inactive { background: #50343a; color: #ffd0c9; }
+[data-theme='dark'] .church-empty { color: var(--muted) !important; }
+[data-theme='dark'] .progress-track { background: #292929; }
+[data-theme='dark'] .progress-track > span { background: #999999; }
+
+/* Una misma paleta, con relieve reservado a las acciones principales. */
+.admin-shell {
+  --admin-radius: 5px;
+  --admin-accent: #91b4d6;
+}
+.admin-shell[data-theme='dark'] {
+  --surface: #0c192c;
+  --canvas: #07101e;
+  --ink: #edf3fc;
+  --muted: #b3c3d9;
+  --line: #233651;
+  --admin-accent: #30465e;
+  --brand: #91b4d6;
+  --brand-hover: #b9d3ed;
+  --tint: #192c45;
+  --focus: #7698d1;
+}
+[data-theme='dark'] .admin-main { background: radial-gradient(ellipse at top right, rgb(118 152 209 / 8%), transparent 55%), linear-gradient(rgb(5 14 29 / 87%), rgb(4 12 24 / 92%)), url('../assets/panel-paisaje-andino.png') center / cover no-repeat; }
+
+.admin-main :is(.members-card, .church-form) {
+  border: 1px solid var(--line);
+  border-radius: var(--admin-radius);
+  background: var(--surface);
+  box-shadow: 0 4px 20px #10275005;
+}
+.admin-main :is(input, select, .search-box, .category-button, .secondary),
+.admin-sidebar :is(.sidebar-item, .sidebar-toggle, .sidebar-logout) {
+  border-radius: var(--admin-radius);
+}
+.admin-main .admin-primary {
+  min-height: 44px;
+  border: 1px solid var(--brand);
+  border-radius: var(--admin-radius);
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: 3px 3px 0 var(--admin-accent);
+  transition: box-shadow .15s ease, background-color .15s ease;
+}
+.admin-main .admin-primary:hover,
+.admin-main .admin-primary:focus-visible {
+  background: var(--tint);
+  color: var(--brand);
+  box-shadow: 0 0 0 var(--admin-accent);
+}
+.admin-main .member-categories { gap: 8px; }
+.admin-main .event-entry-actions { display: flex; justify-content: flex-end; margin-top: 18px; }
+.admin-main .access-form .admin-field { max-width: 560px; }
+.admin-main .access-form__email, .admin-main .access-feedback { margin: 12px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.admin-main .event-modal { width: min(680px, calc(100% - 32px)); max-height: calc(100dvh - 32px); padding: 0; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); box-shadow: 0 20px 70px #0005; overflow-y: auto; }
+.admin-main .event-modal::backdrop { background: rgb(8 15 28 / 55%); }
+.admin-main .event-modal .event-entry { margin: 0; border: 0; }
+.admin-main .event-entry__heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.admin-main .event-entry__heading h3 { margin: 0; }
+.admin-main .event-entry__close { min-width: 44px; min-height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); font-size: 22px; }
+.admin-main .event-entry__note { margin: 8px 0 20px; color: var(--muted); font-size: 13px; }
+.admin-main .event-entry__full { grid-column: 1 / -1; }
+.admin-main .event-entry textarea { width: 100%; min-width: 0; padding: 12px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); color: var(--ink); font: inherit; resize: vertical; }
+.admin-main .event-entry textarea:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.admin-main .event-entry__preview { margin-top: 18px; padding: 14px; border: 1px solid var(--line); border-radius: 5px; background: var(--tint); color: var(--ink); font-size: 13px; }
+.admin-main .event-entry__preview p { margin: 7px 0 0; overflow-wrap: anywhere; }
+.admin-main .pastor-link-box { margin-top: 18px; max-width: 560px; padding: 16px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
+.admin-main .pastor-link-box p { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+.admin-main .category-button {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  box-shadow: none;
+}
+.admin-main .category-button:hover,
+.admin-main .category-button.is-active {
+  border-color: var(--focus);
+  background: var(--tint);
+  color: var(--brand);
+}
+.admin-sidebar .sidebar-nav { gap: 6px; }
+.admin-sidebar :is(.sidebar-item, .sidebar-logout) {
+  min-height: 44px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
+.admin-sidebar :is(.sidebar-item:hover, .sidebar-logout:hover) {
+  background: var(--tint);
+  color: var(--brand);
+}
+.admin-sidebar .sidebar-item.is-active {
+  border-color: var(--line);
+  background: var(--tint);
+  color: var(--brand);
+  box-shadow: inset 3px 0 0 var(--brand);
+}
+.admin-sidebar .sidebar-toggle {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: none;
+}
+.admin-sidebar .sidebar-toggle:hover { background: var(--tint); }
+.admin-main .church-table-wrap {
+  border: 1px solid var(--line);
+  border-radius: var(--admin-radius);
+  background: var(--surface);
+  box-shadow: none;
+}
+.admin-main .church-table th {
+  padding: 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--tint);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+.admin-main .church-table td { padding: 16px; border-color: var(--line); }
+.admin-main .church-table tbody tr:last-child td { border-bottom: 0; }
+.admin-main .church-table tbody tr:hover { background: var(--tint); }
+.admin-main .church-row-actions { gap: 8px; }
+.admin-main .church-row-actions button {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--admin-radius);
+  background: var(--surface);
+  color: var(--brand);
+  font-size: 13px;
+  box-shadow: none;
+  text-decoration: none;
+}
+.admin-main .church-row-actions button:hover {
+  border-color: var(--focus);
+  background: var(--tint);
+}
+.admin-main .church-row-actions .annul-action { color: #a14545; }
+.admin-main .church-status { border-radius: var(--admin-radius); }
+[data-theme='dark'] .admin-main .admin-primary { color: #102750; background: var(--brand); border-color: transparent; box-shadow: 2px 3px 0 #20344c; }
+[data-theme='dark'] .admin-main .admin-primary:hover { color: #102750; background: var(--brand-hover); box-shadow: none; }
+[data-theme='dark'] .admin-sidebar .sidebar-item.is-active { color: var(--brand); background: linear-gradient(100deg, #203047, #171f29); box-shadow: inset 3px 0 0 #7698d1; }
+[data-theme='dark'] :is(input:hover, select:hover, .category-button:hover, .category-button.is-active, .sidebar-item:hover, .sidebar-item.is-active, .sidebar-toggle:hover, .sidebar-logout:hover, .secondary:hover) { border-color: #3a3a3a; }
+[data-theme='dark'] .admin-main :is(.members-card, .church-form) { background: linear-gradient(135deg, #102039f5, #0a1628f5); box-shadow: 0 12px 32px #0003; }
+[data-theme='dark'] .admin-main .category-button.is-active { color: var(--brand); border-color: #3d5068; background: #203047; }
+[data-theme='dark'] .admin-sidebar .account-avatar { color: #b9d3ed; background: #25364d; }
+.admin-sidebar .sidebar-item-label { width: auto; font-size: 14px; text-align: left; }
+.admin-sidebar .theme-toggle { flex: 0 0 auto; gap: 10px; margin-bottom: 16px; }
+.admin-sidebar .theme-icon { width: 26px; font-size: 20px; }
+[data-theme='dark'] .admin-sidebar .theme-toggle { border: 1px solid var(--line); background: #181a1d; }
+[data-theme='dark'] .admin-main .search-box { background: #0a1628; }
+@media (prefers-reduced-motion: reduce) {
+  .admin-main .admin-primary { transition: none; }
+}
+
+/* Navegación lateral sencilla y discreta. */
+.admin-shell.sidebar-expanded { grid-template-columns: 216px minmax(0, 1fr); }
+.admin-sidebar { padding: 22px 12px; }
+.admin-sidebar .sidebar-top { align-items: center; gap: 4px; }
+.admin-sidebar .sidebar-brand { display: flex; align-items: center; gap: 9px; padding: 0 4px; border: 0; }
+.admin-sidebar .sidebar-brand strong { overflow: hidden; color: var(--ink); font-size: 13px; text-overflow: ellipsis; white-space: nowrap; }
+.admin-sidebar .sidebar-church-logo { width: 27px; height: 27px; }
+.admin-sidebar .sidebar-toggle { flex-basis: 44px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); }
+.admin-sidebar .sidebar-toggle:hover { border-color: var(--focus); background: var(--tint); }
+.admin-sidebar .sidebar-toggle img, .admin-shell .sidebar-bubble img { width: 27px; height: 27px; object-fit: contain; }
+[data-theme='dark'] .admin-sidebar .sidebar-toggle img, [data-theme='dark'] .sidebar-bubble img { width: 36px; height: 36px; border-radius: 3px; }
+.admin-sidebar .sidebar-nav { gap: 3px; margin-top: 26px; }
+.admin-sidebar .sidebar-item { min-height: 44px; padding: 9px 10px; border: 0; color: var(--muted); font-weight: 500; }
+.admin-sidebar .sidebar-item.is-active { border: 0; background: var(--tint); color: var(--brand); box-shadow: none; font-weight: 600; }
+.admin-sidebar .sidebar-item-icon ion-icon { font-size: 19px; }
+.admin-sidebar .theme-control { gap: 8px; padding: 6px 4px 10px; }
+.admin-sidebar .theme-control .face-theme-switch { --switch-width: 48px; --face-size: 22px; }
+.admin-sidebar .theme-control__label { font-size: 12px; }
+.admin-sidebar .sidebar-account { gap: 8px; padding: 12px 4px 4px; border-top: 1px solid var(--line); }
+.admin-sidebar .account-avatar { width: 30px; height: 30px; flex-basis: 30px; font-size: 12px; }
+.admin-sidebar .account-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+.admin-sidebar .account-details strong { font-size: 12px; }
+.admin-sidebar .account-details span { margin-top: 2px; font-size: 11px; }
+.admin-sidebar .sidebar-logout { min-height: 44px; padding: 8px 4px; font-size: 12px; font-weight: 500; }
+.admin-sidebar .sidebar-logout-icon { flex-basis: 30px; font-size: 17px; }
+[data-theme='dark'] .admin-sidebar .sidebar-item.is-active { background: var(--tint); color: var(--brand); box-shadow: none; }
+.sidebar-collapsed .admin-sidebar .sidebar-brand { display: none; }
+.sidebar-collapsed .admin-sidebar :is(.sidebar-item, .sidebar-logout) { justify-content: center; padding-inline: 0; }
+.sidebar-collapsed .admin-sidebar .sidebar-account { justify-content: center; padding-inline: 0; }
+.admin-shell.sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+.admin-shell .sidebar-bubble {
+  position: fixed;
+  z-index: 20;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: 0 4px 14px #0002;
+  font-size: 19px;
+}
+.admin-shell .sidebar-bubble:hover { background: var(--tint); }
+.sidebar-hidden .admin-content { padding-top: max(76px, 5vw); }
+[data-theme='dark'] .sidebar-bubble { color: var(--brand) !important; }
+@media (max-width: 760px) {
+  .admin-shell.sidebar-expanded { grid-template-columns: 190px minmax(0, 1fr); }
+  .admin-shell.sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+  .admin-sidebar { padding: 16px 8px; }
+}
+
+/* Transición de tema, incluida la capa sobre la fotografía. */
+.admin-shell .admin-main,
+.admin-shell[data-theme='dark'] .admin-main {
+  position: relative;
+  isolation: isolate;
+  background: url('../assets/panel-paisaje-andino.png') center / cover no-repeat;
+}
+.admin-shell .admin-main::before,
+.admin-shell .admin-main::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  transition: opacity .4s ease;
+}
+.admin-shell .admin-main::before { background: rgb(247 248 251 / 68%); opacity: 1; }
+.admin-shell .admin-main::after {
+  background: radial-gradient(ellipse at top right, rgb(118 152 209 / 8%), transparent 55%), linear-gradient(rgb(5 14 29 / 87%), rgb(4 12 24 / 92%));
+  opacity: 0;
+}
+.admin-shell[data-theme='dark'] .admin-main::before { opacity: 0; }
+.admin-shell[data-theme='dark'] .admin-main::after { opacity: 1; }
+.admin-shell[data-theme='dark'] .admin-main :is(.members-card, .church-form) { background: var(--surface); }
+.admin-shell :is(.admin-sidebar, .members-card, .church-form, .church-table-wrap, .church-table th, .church-table td, .search-box, input, select, textarea, .sidebar-item, .sidebar-toggle, .sidebar-logout, .sidebar-bubble, .category-button, .admin-primary, .secondary, .sidebar-account, .account-avatar, .account-details strong, .account-details span, .admin-welcome h1, .admin-footer, .theme-control__label) {
+  transition: background-color .4s ease, color .4s ease, border-color .4s ease, box-shadow .4s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .admin-main::before, .admin-shell .admin-main::after,
+  .admin-shell :is(.admin-sidebar, .members-card, .church-form, .church-table-wrap, .church-table th, .church-table td, .search-box, input, select, textarea, .sidebar-item, .sidebar-toggle, .sidebar-logout, .sidebar-bubble, .category-button, .admin-primary, .secondary, .sidebar-account, .account-avatar, .account-details strong, .account-details span, .admin-welcome h1, .admin-footer, .theme-control__label) { transition: none; }
+}
+
+/* La ficha comparte superficies, acentos y botones con el panel. */
+.page-shell {
+  --form-accent: #91b4d6;
+  background: url('../assets/login-paisaje-andino.png') center / cover fixed;
+}
+.page-shell[data-theme='dark'] {
+  --brand: #91b4d6;
+  --brand-hover: #b9d3ed;
+  --tint: #1b232d;
+  --focus: #7698d1;
+  --form-accent: #30465e;
+  background: url('../assets/login-paisaje-andino.png') center / cover fixed;
+}
+.page-shell :is(.wizard, .success-card) {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface);
+  box-shadow: 0 12px 40px #10275012;
+}
+.page-shell .wizard[hidden] { display: none; }
+.page-shell[data-theme='dark'] :is(.wizard, .success-card) {
+  background: linear-gradient(135deg, #1c1d1f, #111214);
+  box-shadow: 0 12px 32px #0003;
+}
+.page-shell :is(input:not([type='checkbox']), select, .input-affix, .baptism-check) { border-radius: 5px; }
+.page-shell .progress-track { height: 4px; background: var(--line); }
+.page-shell .progress-track > span { background: var(--focus); }
+.page-shell .personal-fields { gap: 17px 18px; }
+.page-shell .personal-fields .birth-date-selects { grid-template-columns: minmax(0, .8fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: 6px; }
+.page-shell .personal-fields .birth-date-selects select { padding-inline: 5px; }
+.page-shell .step-title,
+.page-shell .step-panel:not([hidden]) { animation: form-step-enter .4s cubic-bezier(.2, .7, .2, 1) both; }
+.page-shell .step-panel:not([hidden]) { animation-delay: .04s; }
+@keyframes form-step-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-shell .step-title, .page-shell .step-panel:not([hidden]) { animation: none; }
+}
+.page-shell .baptism-check { background: var(--tint); border-color: var(--line); }
+.page-shell .baptism-check input { accent-color: #557fa8; }
+.page-shell .email-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.page-shell .email-options button {
+  min-height: 40px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+}
+.page-shell .email-options button.is-active { border-color: var(--focus); background: var(--tint); color: var(--brand); }
+.page-shell .email-options button:disabled { opacity: .5; cursor: not-allowed; }
+.page-shell .field-note { color: var(--muted); font-size: 12px; line-height: 1.45; font-weight: 400; }
+.page-shell .family-groups { display: grid; gap: 14px; margin-top: 28px; }
+.page-shell .family-group { padding: 18px; border: 1px solid var(--line); border-radius: 5px; background: var(--surface); }
+.page-shell .family-group h3 { margin: 0 0 14px; color: var(--brand); font-size: 14px; font-weight: 600; }
+.page-shell .family-group__fields { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 14px; }
+.page-shell .spouse-check { display: flex; align-items: center; gap: 10px; color: var(--brand); font-size: 14px; font-weight: 600; cursor: pointer; }
+.page-shell .spouse-check input { width: 20px; height: 20px; margin: 0; accent-color: #557fa8; }
+.page-shell .spouse-fields { min-width: 0; margin: 16px 0 0; padding: 0; border: 0; }
+.page-shell .spouse-fields[hidden] { display: none; }
+.page-shell[data-theme='dark'] .email-options button { color: var(--muted); }
+.page-shell[data-theme='dark'] .email-options button.is-active { color: var(--brand); }
+.page-shell :is(.form-actions button, .completion-actions button) {
+  min-height: 48px;
+  border-radius: 5px;
+}
+.page-shell :is(.form-actions button:not(.secondary), .completion-actions button:not(.secondary)) {
+  border: 1px solid var(--brand);
+  background: var(--surface);
+  color: var(--brand);
+  box-shadow: 3px 3px 0 var(--form-accent);
+}
+.page-shell :is(.form-actions button:not(.secondary), .completion-actions button:not(.secondary)):hover {
+  background: var(--tint);
+  box-shadow: none;
+}
+.page-shell[data-theme='dark'] :is(.form-actions button:not(.secondary), .completion-actions button:not(.secondary)) {
+  border-color: transparent;
+  background: var(--brand);
+  color: #102750;
+  box-shadow: 2px 3px 0 #20344c;
+}
+.page-shell[data-theme='dark'] :is(.form-actions button:not(.secondary), .completion-actions button:not(.secondary)):hover { background: var(--brand-hover); box-shadow: none; }
+.page-shell .completion-actions { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px; }
+.page-shell .registration-transition { animation: registration-enter .4s ease both; }
+.page-shell .registration-transition--exit { animation: registration-exit .35s ease both; }
+.page-shell .registration-transition--success .check { animation: registration-check .45s .15s ease both; }
+@keyframes registration-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes registration-exit {
+  to { opacity: 0; transform: translateY(-8px); }
+}
+@keyframes registration-check {
+  from { opacity: 0; transform: scale(.75); }
+  to { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-shell .registration-transition, .page-shell .registration-transition--success .check { animation: none; }
+}
+.page-shell .back-link { color: var(--muted); }
+.page-shell .back-link:hover { color: var(--brand); }
+@media (max-width: 600px) {
+  .page-shell { background-attachment: scroll; }
+  .page-shell .completion-actions button { flex: 1 1 100%; }
+  .page-shell .personal-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 12px; }
+  .page-shell .personal-fields :is(.full, .birth-date, .birth-place) { grid-column: 1 / -1; }
+}
+@media (max-width: 420px) {
+  .page-shell .family-group { padding: 14px; }
+  .page-shell .family-group__fields { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}

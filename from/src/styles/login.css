@@ -1,0 +1,117 @@
+/* El paisaje enmarca una tarjeta clara; todos los efectos son decorativos. */
+.login-page {
+  position: relative;
+  isolation: isolate;
+  padding: clamp(24px, 5vw, 64px);
+  background-image: linear-gradient(110deg, #0d172940 0%, #0d172968 55%, #0d1729a6 100%), url('../assets/login-paisaje-andino.png');
+  background-position: center;
+  background-size: cover;
+}
+.login-page::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 18% 20%, #fff1d112, transparent 60%);
+}
+.login-card {
+  position: relative;
+  width: min(100%, 440px);
+  padding: 42px 36px 28px;
+  border: 1px solid #ffffffb3;
+  border-radius: 14px;
+  background: linear-gradient(150deg, #fffffff2, #ffffffcf);
+  box-shadow: 0 28px 85px #08132645, inset 0 1px 0 #fff;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+.login-church-logo {
+  width: min(100%, 292px);
+  height: auto;
+  margin: 0 auto 32px;
+}
+.login-form { gap: 16px; }
+.google-link-card h1 { margin: 0 0 12px; color: #202c42; font-size: 23px; line-height: 1.25; }
+.google-link-card > p:not(.church-error) { margin: 0 0 24px; color: #657187; font-size: 14px; line-height: 1.6; }
+.google-link-card > .admin-primary { width: 100%; }
+.login-form .admin-field { gap: 9px; color: #354359; font-size: 13px; font-weight: 500; }
+.login-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 50px;
+  padding-left: 14px;
+  border: 1px solid #c5cfdf;
+  border-radius: 6px;
+  background: #ffffffa3;
+  transition: border-color .18s, box-shadow .18s, background .18s;
+}
+.login-input > ion-icon { flex: 0 0 18px; font-size: 18px; color: #77869d; }
+.login-input:focus-within { border-color: #6c8ec5; background: #fff; box-shadow: 0 0 0 3px #18366b12; }
+.login-input > input, .login-input > input:focus {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  height: 48px;
+  border: 0;
+  padding: 0 12px 0 0;
+  background: transparent;
+  box-shadow: none;
+  font-size: 15px;
+}
+.password-toggle, .password-toggle:hover {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 46px;
+  padding: 0;
+  margin-right: 2px;
+  border-radius: 8px;
+  background: transparent;
+  color: #657187;
+}
+.password-toggle:hover { background: #18366b08; }
+.password-toggle ion-icon { font-size: 20px; }
+.login-submit { height: 50px; margin-top: 4px; border-radius: 6px; background: #18366b; box-shadow: 0 5px 14px #18366b18; }
+.login-submit > ion-icon { font-size: 19px; }
+.login-divider { margin: 18px 0; color: #657187; }
+.login-divider::before, .login-divider::after { background: #18366b20; }
+.google-login { min-height: 50px; border-color: #c5cfdf; border-radius: 6px; background: #ffffffc4; color: #354359; font-size: 14px; }
+.google-login:hover { background: #fff; }
+.registration-access { margin-top: 22px; padding-top: 18px; border-top: 1px solid #18366b20; }
+.registration-access > span { display: block; color: #657187; font-size: 12px; }
+.registration-link {
+  justify-content: flex-start;
+  gap: 10px;
+  min-height: 54px;
+  margin-top: 9px;
+  padding: 12px 14px;
+  border: 1px solid #18366b12;
+  border-radius: 6px;
+  background: #f0f4fba3;
+  color: #18366b;
+  text-align: left;
+  font-size: 13px;
+}
+.registration-link:hover { background: #e6edf9; color: #18366b; }
+.registration-link > ion-icon { flex: 0 0 20px; font-size: 20px; }
+.registration-link > ion-icon:last-child { margin-left: auto; font-size: 17px; }
+.google-notice { font-size: 12px; line-height: 1.6; }
+@media (min-width: 1000px) {
+  .login-page { align-items: center; padding: 32px; }
+  .login-card { width: min(100%, 420px); padding: 34px 36px 28px; }
+  .login-church-logo { width: min(100%, 270px); margin-bottom: 26px; }
+}
+@media (max-width: 600px) {
+  .login-page { padding: 24px 16px; background-position: 46% center; }
+  .login-card { padding: 32px 24px 24px; border-radius: 14px; }
+  .login-church-logo { margin-bottom: 28px; }
+  .login-input > input { font-size: 16px; }
+}
+@media (max-width: 360px) {
+  .login-page { padding: 18px 12px; }
+  .login-card { padding-inline: 20px; }
+}
