@@ -27,6 +27,7 @@ import TableFrame from '../components/ui/TableFrame.jsx'
 import useTheme from '../hooks/useTheme.js'
 import usePanelData from '../hooks/usePanelData.js'
 import ChurchDirectoryFeature from '../features/churches/ChurchDirectory.jsx'
+import PublicChurchDirectory from '../features/churches/PublicChurchDirectory.jsx'
 import AccessManagementFeature from '../features/access/AccessManagement.jsx'
 import EventModalFeature from '../features/events/EventModal.jsx'
 import LoginView from '../features/auth/LoginView.jsx'
@@ -61,6 +62,16 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
       if (Number(next.day) > maxDay) next.day = ''
       return next
     })
+  }
+
+  function updateBaptized(checked) {
+    setBaptized(checked)
+    if (!checked) {
+      ;['mesBautismo', 'anioBautismo', 'formaAdmision', 'pastorOficiante'].forEach((name) => {
+        const field = formRef.current?.elements.namedItem(name)
+        if (field) field.value = ''
+      })
+    }
   }
 
   function nextStep() {
@@ -185,11 +196,11 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
     <div className="fields two-columns" key="religiosa">
       <label className="field"><span>Departamento de la iglesia</span><select value={churchDepartment} onChange={(event) => { setChurchDepartment(event.target.value); setSelectedChurch('') }}><option value="">Todos los departamentos</option>{departmentsData.map((department) => <option key={department.id} value={department.name}>{department.name}</option>)}</select></label>
       <label className="field"><span>Iglesia</span><select name="iglesia" value={selectedChurch} onChange={(event) => setSelectedChurch(event.target.value)}><option value="">Seleccione una iglesia</option>{churches.filter((church) => church.active && (!churchDepartment || church.department === churchDepartment)).map((church) => <option key={church.id} value={church.id}>{church.name} — {church.department}</option>)}</select></label>
-      <label className="baptism-check full"><input type="checkbox" name="bautizado" checked={baptized} onChange={(event) => setBaptized(event.target.checked)} /><span>¿Es bautizado(a)?</span></label>
+      <label className="baptism-check full"><input type="checkbox" name="bautizado" checked={baptized} onChange={(event) => updateBaptized(event.target.checked)} /><span>¿Es bautizado(a)?</span></label>
       <label className="field"><span>Mes de bautismo</span><select name="mesBautismo" required={baptized} disabled={!baptized} defaultValue=""><option value="">Seleccione el mes</option>{months.map((month, index) => <option key={month} value={index + 1}>{month}</option>)}</select></label>
       <label className="field"><span>Año de bautismo</span><select name="anioBautismo" required={baptized} disabled={!baptized} defaultValue=""><option value="">Seleccione el año</option>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
       <label className="field full"><span>Forma de admisión</span><select name="formaAdmision" disabled={!baptized} defaultValue=""><option value="">Seleccione una opción</option><option>Bautismo oficial</option><option>Rebautismo</option><option>Voto de la Iglesia</option><option>Transferencia emitida por otra iglesia</option></select></label>
-      <Field label="Pastor oficiante" name="pastorOficiante" className="full" placeholder="Nombre completo" />
+      <Field label="Pastor oficiante" name="pastorOficiante" className="full" placeholder="Nombre completo" disabled={!baptized} />
     </div>,
   ]
 
@@ -470,6 +481,8 @@ function App() {
 
   if (window.location.pathname.replace(/\/+$/, '') === '/registro-pastor') return <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} isPastor onBack={() => window.location.assign('/')} backLabel="Volver al inicio" />
 
+  if (window.location.pathname.replace(/\/+$/, '') === '/iglesias') return <PublicChurchDirectory />
+
   if (view === 'registro') return <Registration churches={churches} departmentsData={departmentsData} theme={registrationOrigin === 'admin' ? theme : 'light'} accountEmail={accountEmail} onRegistered={refreshPanel} onBack={() => setView(registrationOrigin)} backLabel={registrationOrigin === 'login' ? 'Volver al inicio' : 'Volver al panel'} />
 
   if (view === 'link-google') return <GoogleLinkView error={loginError} busy={linkBusy} onLink={async () => { setLoginError(''); setLinkBusy(true); try { const result = await authService.beginGoogleLink(); window.location.assign(result.url) } catch (error) { setLoginError(error.message || 'No se pudo iniciar la vinculación.'); setLinkBusy(false) } }} onLogout={async () => { try { await authService.logout(); setAccountEmail(''); setAccountName(''); setAccountPicture(''); setAccountRole(''); setLoginError(''); setView('login') } catch (error) { setLoginError(error.message || 'No se pudo cerrar sesión.') } }} />
@@ -522,7 +535,7 @@ function App() {
         {panelError && <p className="church-error" role="alert">{panelError}</p>}
         <div className="admin-welcome"><div>{section !== 'pastores' && <h1>{activeSection.heading}</h1>}</div>{section === 'pastores' && <Button className="add-button" onClick={async () => { const url = new URL('/registro-pastor', window.location.origin).href; setShowPastorLink(true); try { await navigator.clipboard.writeText(url); setCopyMessage('Enlace copiado.') } catch { setCopyMessage('No se pudo copiar automáticamente. Selecciona el enlace para copiarlo.') } }}>Copiar enlace de registro</Button>}</div>
         {section === 'pastores' && showPastorLink && <div className="pastor-link-box"><label className="field"><span>Enlace para pastores</span><input value={new URL('/registro-pastor', window.location.origin).href} readOnly onFocus={(event) => event.target.select()} /></label><p role="status">{copyMessage}</p></div>}
-        {section === 'estadisticas' ? <Statistics members={membersData} departments={departmentsData} pastors={pastorsData} events={eventsData} /> : section === 'accesos' && accountRole === 'administrador' ? <AccessManagementFeature members={membersData} onChanged={refreshPanel} /> : section === 'iglesias' ? <ChurchDirectoryFeature churches={churches} setChurches={setChurches} departmentsData={departmentsData} canEdit={accountRole !== 'miembro'} /> : section === 'pastores' ? <section className="members-card church-directory">
+        {section === 'estadisticas' ? <Statistics members={membersData} departments={departmentsData} pastors={pastorsData} events={eventsData} /> : section === 'accesos' && accountRole === 'administrador' ? <AccessManagementFeature members={membersData} onChanged={refreshPanel} /> : section === 'iglesias' ? <ChurchDirectoryFeature churches={churches} setChurches={setChurches} departmentsData={departmentsData} canEdit={accountRole === 'administrador'} /> : section === 'pastores' ? <section className="members-card church-directory">
           <div className="church-table-wrap"><table className="church-table pastors-table"><thead><tr><th scope="col">Nombre</th><th scope="col">Apellido</th><th scope="col">Edad</th></tr></thead><tbody>{pastorsData.map(({ id, member }) => <tr key={id}><td>{member.names}</td><td>{[member.paternal_surname, member.maternal_surname].filter(Boolean).join(' ')}</td><td>{calculateAge(member.birth_date)}</td></tr>)}{!pastorsData.length && <tr><td colSpan="3" className="church-empty">No hay pastores disponibles.</td></tr>}</tbody></table></div>
         </section> : <>
         {section === 'miembros' && <nav className="member-categories" aria-label="Tipos de registro de miembros">{Object.entries(memberCategories).map(([key, label]) => <Button key={key} variant="bare" className={`category-button ${memberCategory === key ? 'is-active' : ''}`} aria-pressed={memberCategory === key} onClick={() => { setMemberCategory(key); setQuery(''); setEventFormOpen(false) }}>{label}</Button>)}</nav>}

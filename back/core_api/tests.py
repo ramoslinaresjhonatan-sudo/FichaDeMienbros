@@ -2,7 +2,7 @@ from django.test import TestCase, Client
 from django.test import override_settings
 from unittest.mock import patch
 from rest_framework.test import APIClient
-from core_api.models import Department, Member, User, Church
+from core_api.models import Department, Member, User, Church, ChurchRegistrationOrigin
 
 class ApiTests(TestCase):
     def setUp(self):
@@ -44,6 +44,16 @@ class ApiTests(TestCase):
         options = self.client.get('/api/registro/opciones/').json()['churches']
         self.assertIn({'id': active.id, 'name': 'Central', 'department': 'La Paz'}, options)
         self.assertEqual(len(options), 1)
+
+    def test_public_church_directory_allows_only_one_registration_per_origin(self):
+        department = Department.objects.get(name='La Paz')
+        client = APIClient()
+        first = client.post('/api/directorio-iglesias/', {'name': 'Nueva Esperanza', 'department': department.id}, format='json', REMOTE_ADDR='198.51.100.10')
+        self.assertEqual(first.status_code, 201, first.data)
+        self.assertTrue(ChurchRegistrationOrigin.objects.filter(church_id=first.data['id']).exists())
+        second = client.post('/api/directorio-iglesias/', {'name': 'Otra Iglesia', 'department': department.id}, format='json', REMOTE_ADDR='198.51.100.10')
+        self.assertEqual(second.status_code, 429, second.data)
+        self.assertEqual(client.get('/api/directorio-iglesias/').status_code, 200)
 
     def test_pastor_cannot_manage_users(self):
         self.api.force_authenticate(self.pastor)
@@ -171,6 +181,12 @@ class ApiTests(TestCase):
         data['birth_date'] = '1990-01-01'
         self.assertEqual(client.post('/api/registro/', data, format='json').status_code, 201)
         self.assertEqual(client.post('/api/registro/', data, format='json').status_code, 400)
+
+    def test_registration_rejects_officiating_pastor_when_not_baptized(self):
+        payload = {'names': 'Julia', 'paternal_surname': 'Paz', 'identity_card': '9876543', 'gender': 'mujer', 'birth_date': '1990-01-01', 'baptized': False, 'pastor_name': 'Pastor Ejemplo'}
+        response = APIClient().post('/api/registro/', payload, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('pastor_name', response.data)
 
     def test_family_relationship_links_when_parent_registers_later(self):
         client = APIClient()

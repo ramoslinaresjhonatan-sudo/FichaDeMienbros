@@ -1,4 +1,6 @@
+import hashlib
 import json
+import os
 from django.contrib.auth import authenticate, login, logout
 from django.db.models.deletion import ProtectedError
 from django.db.models import Q
@@ -14,7 +16,7 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission, SAFE_METHODS
 from rest_framework.response import Response
-from core_api.models import Department, Church, Member, User, Admission, Baptism, Marriage, Death, Separation
+from core_api.models import Department, Church, ChurchRegistrationOrigin, Member, User, Admission, Baptism, Marriage, Death, Separation
 from core_api import serializers
 
 class IsAdministrator(BasePermission):
@@ -51,7 +53,7 @@ class ChurchViewSet(ProtectedViewSet):
     queryset = Church.objects.select_related('department').all()
     serializer_class = serializers.ChurchSerializer
     def get_permissions(self):
-        return [(IsAuthenticated if self.action in ('list', 'retrieve') else CanManagePanel)()]
+        return [(IsAuthenticated if self.action in ('list', 'retrieve') else IsAdministrator)()]
     def destroy(self, request, *args, **kwargs):
         return Response({'detail': 'Use la acción anular para conservar el historial.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
     @action(detail=True, methods=['post'], url_path='anular')
@@ -60,6 +62,44 @@ class ChurchViewSet(ProtectedViewSet):
         church.status = 'anulada'
         church.save(update_fields=['status'])
         return Response(self.get_serializer(church).data)
+
+
+def public_client_ip(request):
+    """Render termina TLS; el proxy debe ser habilitado explícitamente por entorno."""
+    if os.getenv('DJANGO_TRUST_PROXY', 'false').lower() == 'true':
+        forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+        if forwarded:
+            return forwarded.split(',')[0].strip()
+    return request.META.get('REMOTE_ADDR', '')
+
+
+def public_ip_hash(request):
+    value = public_client_ip(request)
+    salt = os.getenv('DJANGO_IP_HASH_SALT') or os.getenv('DJANGO_SECRET_KEY', '')
+    return hashlib.sha256(f'{salt}:{value}'.encode('utf-8')).hexdigest()
+
+
+@api_view(['GET', 'POST'])
+@permission_classes([AllowAny])
+def public_church_directory(request):
+    if request.method == 'GET':
+        churches = Church.objects.filter(status='activa').select_related('department')
+        return Response({
+            'departments': [{'id': item.id, 'name': item.name} for item in Department.objects.all()],
+            'churches': [{'id': item.id, 'name': item.name, 'department': item.department.name} for item in churches],
+        })
+
+    serializer = serializers.PublicChurchRegistrationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    try:
+        with transaction.atomic():
+            if ChurchRegistrationOrigin.objects.select_for_update().filter(ip_hash=public_ip_hash(request)).exists():
+                return Response({'detail': 'Desde esta conexión ya se registró una iglesia. Para corregir datos, contacte a un administrador.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+            church = serializer.save()
+            ChurchRegistrationOrigin.objects.create(ip_hash=public_ip_hash(request), church=church)
+    except IntegrityError:
+        return Response({'detail': 'Desde esta conexión ya se registró una iglesia. Para corregir datos, contacte a un administrador.'}, status=status.HTTP_429_TOO_MANY_REQUESTS)
+    return Response({'id': church.id, 'name': church.name, 'department': church.department.name}, status=status.HTTP_201_CREATED)
 
 class MemberViewSet(ProtectedViewSet):
     queryset = Member.objects.select_related('church', 'department').all()

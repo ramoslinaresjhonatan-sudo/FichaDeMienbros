@@ -37,6 +37,24 @@ MemberSerializer = serializer_for(Member)
 AdmissionSerializer = serializer_for(Admission)
 SeparationSerializer = serializer_for(Separation)
 
+
+class PublicChurchRegistrationSerializer(serializers.ModelSerializer):
+    name = serializers.CharField(max_length=180, trim_whitespace=True)
+
+    class Meta:
+        model = Church
+        fields = ['name', 'department']
+
+    def validate_name(self, value):
+        if not value:
+            raise serializers.ValidationError('Ingrese el nombre de la iglesia.')
+        return value
+
+    def validate(self, attrs):
+        if Church.objects.filter(department=attrs['department'], name__iexact=attrs['name']).exists():
+            raise serializers.ValidationError({'name': 'Ya existe una iglesia con ese nombre en este departamento.'})
+        return attrs
+
 class EventSerializer(ValidatedModelSerializer):
     def validate(self, attrs):
         event_date = attrs.get('date', getattr(self.instance, 'date', None))
@@ -146,6 +164,8 @@ class RegistrationSerializer(ValidatedModelSerializer):
             raise serializers.ValidationError({'baptism_month': 'El mes de bautismo no puede ser futuro.'})
         if attrs.get('baptized') and (attrs['baptism_year'], attrs['baptism_month']) < (born.year, born.month):
             raise serializers.ValidationError({'baptism_year': 'El bautismo no puede ser anterior al nacimiento.'})
+        if not attrs.get('baptized') and attrs.get('pastor_name'):
+            raise serializers.ValidationError({'pastor_name': 'El pastor oficiante solo se registra cuando la persona fue bautizada.'})
         if attrs.get('admission_method') and not attrs.get('church'):
             raise serializers.ValidationError({'church': 'Seleccione la iglesia para registrar la admisión.'})
         return attrs

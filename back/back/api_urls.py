@@ -17,6 +17,7 @@ router.register('fallecimientos', views.DeathViewSet)
 router.register('separaciones', views.SeparationViewSet)
 
 urlpatterns = [
+    path('directorio-iglesias/', views.public_church_directory),
     path('registro/opciones/', views.registration_options),
     path('registro/', views.register_member),
     path('auth/csrf/', views.csrf_token),

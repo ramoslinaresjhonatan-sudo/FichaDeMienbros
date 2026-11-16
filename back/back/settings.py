@@ -75,17 +75,6 @@ TEMPLATES = [
 WSGI_APPLICATION = 'back.wsgi.application'
 
 
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
-}
-
-
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
 
@@ -148,16 +137,19 @@ DEBUG = os.getenv('DJANGO_DEBUG', 'false').lower() == 'true'
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', SECRET_KEY)
 database_url = os.getenv('URL_DATABASE', '').strip()
 
-if database_url:
-    parsed_database_url = urlparse(database_url)
-    if parsed_database_url.scheme not in ('postgres', 'postgresql'):
-        raise ImproperlyConfigured('URL_DATABASE debe ser una URL de PostgreSQL.')
+if not database_url:
+    raise ImproperlyConfigured('URL_DATABASE es obligatoria y debe usar PostgreSQL.')
 
-    database_options = {
-        key: values[-1]
-        for key, values in parse_qs(parsed_database_url.query).items()
-    }
-    DATABASES['default'] = {
+parsed_database_url = urlparse(database_url)
+if parsed_database_url.scheme not in ('postgres', 'postgresql'):
+    raise ImproperlyConfigured('URL_DATABASE debe ser una URL de PostgreSQL.')
+
+database_options = {
+    key: values[-1]
+    for key, values in parse_qs(parsed_database_url.query).items()
+}
+DATABASES = {
+    'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': parsed_database_url.path.lstrip('/'),
         'USER': unquote(parsed_database_url.username or ''),
@@ -166,8 +158,7 @@ if database_url:
         'PORT': str(parsed_database_url.port or 5432),
         'OPTIONS': database_options,
     }
-else:
-    DATABASES['default']['NAME'] = os.getenv('DJANGO_DB_PATH', str(BASE_DIR / 'db.sqlite3'))
+}
 CORS_ALLOWED_ORIGINS = os.getenv('DJANGO_CORS_ORIGINS', 'http://localhost:5173,http://127.0.0.1:5173').split(',')
 CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS

@@ -3,7 +3,7 @@
 ## 1. Base de datos y API en Northflank
 
 1. Cree una base de datos PostgreSQL y un servicio desde el repositorio.
-2. En el servicio, use **Dockerfile** como método de construcción y seleccione `FichaRegsitro/back` como directorio raíz. El Dockerfile instala dependencias, migra la base, recopila los estáticos y arranca Gunicorn en el puerto recibido en `PORT`.
+2. En el servicio, use **Dockerfile** como método de construcción, `/back` como contexto de construcción y `/back/Dockerfile` como ubicación del Dockerfile. El Dockerfile instala dependencias, migra la base, recopila los estáticos y arranca Gunicorn en el puerto recibido en `PORT`.
 3. Exponga el puerto HTTP `8000` y cree un dominio público HTTPS, por ejemplo `https://api-tu-proyecto.northflank.app`.
 4. Configure el health check HTTP como `/healthz/`.
 5. Agregue estas variables de entorno; reemplace ambos dominios por los definitivos:
@@ -25,7 +25,7 @@ No agregue comillas ni una barra final a `DJANGO_CORS_ORIGINS` y `FRONTEND_URL`.
 ## 2. Frontend en Vercel
 
 1. Importe el mismo repositorio en Vercel.
-2. Establezca **Root Directory** en `FichaRegsitro/from`.
+2. Establezca **Root Directory** en `from`.
 3. Configure estas variables de entorno para Production, Preview y Development, con la URL pública HTTPS de Northflank:
 
 ```env

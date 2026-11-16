@@ -1,6 +1,6 @@
 # Backend de ficha de miembro
 
-API Django para miembros, iglesias, usuarios y acontecimientos. Usa SQLite para desarrollo.
+API Django para miembros, iglesias, usuarios y acontecimientos. Usa PostgreSQL mediante la variable `URL_DATABASE`.
 
 ## Iniciar
 
@@ -10,6 +10,8 @@ Desde esta carpeta, en PowerShell:
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
+Copy-Item .env.example .env
+# Complete URL_DATABASE en .env con tu conexión PostgreSQL
 python manage.py migrate
 python manage.py createsuperuser
 python manage.py runserver

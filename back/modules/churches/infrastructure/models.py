@@ -20,3 +20,13 @@ class Church(models.Model):
         constraints = [models.UniqueConstraint(fields=['department', 'name'], name='unique_church_department_name')]
     def __str__(self):
         return self.name
+
+
+class ChurchRegistrationOrigin(models.Model):
+    """Evita más de un alta pública por origen sin almacenar la IP legible."""
+    ip_hash = models.CharField(max_length=64, unique=True)
+    church = models.OneToOneField(Church, on_delete=models.PROTECT, related_name='public_registration_origin')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = 'core_api'
