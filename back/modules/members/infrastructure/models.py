@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from modules.members.domain.choices import Gender, MemberStatus
 
@@ -27,6 +28,8 @@ class Member(models.Model):
     spouse_name = models.CharField(max_length=200, blank=True)
     spouse_identity_card = models.CharField(max_length=40, blank=True)
     status = models.CharField(max_length=12, choices=MemberStatus.choices, default=MemberStatus.ACTIVE)
+    privacy_consent_at = models.DateTimeField(null=True, blank=True)
+    privacy_consent_version = models.CharField(max_length=30, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     class Meta:
         app_label = 'core_api'
@@ -34,3 +37,14 @@ class Member(models.Model):
         constraints = [models.UniqueConstraint(fields=['identity_card'], condition=~models.Q(identity_card=''), name='unique_nonempty_member_identity')]
     def __str__(self):
         return ' '.join(filter(None, [self.names, self.paternal_surname, self.maternal_surname])) or f'Miembro {self.pk}'
+
+
+class MemberChange(models.Model):
+    member = models.ForeignKey(Member, on_delete=models.PROTECT, related_name='change_history')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name='member_changes', null=True, blank=True)
+    changes = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        app_label = 'core_api'
+        ordering = ['-created_at', '-id']

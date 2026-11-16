@@ -39,7 +39,7 @@ class Command(BaseCommand):
                         email=f'persona.prueba.{index + 1}@example.com', address=f'Domicilio ficticio {index + 1}', department=department.pk,
                         church=churches[index % len(churches)].pk, previous_faith='Dato de prueba', father_name='Padre Ejemplo',
                         mother_name='Madre Ejemplo', is_pastor=index < 2, baptized=True, baptism_month=1 + index % 12,
-                        baptism_year=born.year + 18, admission_method='bautismo')
+                        baptism_year=born.year + 18, admission_method='bautismo', privacy_consent=True)
             serializer = RegistrationSerializer(data=data)
             serializer.is_valid(raise_exception=True)
             people.append(serializer.save())

@@ -5,11 +5,11 @@ export default function LoadingState({ label = 'Cargando datos…', variant = 's
   return (
     <div className={`data-loader data-loader--${variant}`} data-theme={theme} role="status" aria-live="polite" aria-atomic="true">
       <div className="data-loader__art" aria-hidden="true">
-        <div className="data-loader__boxes">
-          {['one', 'two', 'three', 'four', 'five', 'six'].map((box) => (
-            <div className={`data-loader__box data-loader__box--${box}`} key={box} />
-          ))}
-        </div>
+        <svg className="data-loader__blocks" viewBox="0 0 24 24" fill="currentColor" focusable="false">
+          <rect className="data-loader__block" x="1" y="1" rx="1" width="10" height="10" />
+          <rect className="data-loader__block" x="1" y="1" rx="1" width="10" height="10" />
+          <rect className="data-loader__block" x="1" y="1" rx="1" width="10" height="10" />
+        </svg>
       </div>
       <span className="data-loader__label">{label}</span>
     </div>

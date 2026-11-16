@@ -154,7 +154,7 @@ class ApiTests(TestCase):
     def test_public_registration_creates_pastor_member_without_login_access(self):
         client = Client(enforce_csrf_checks=True)
         csrf = client.get('/api/auth/csrf/').json()['csrfToken']
-        payload = {'names': 'María', 'paternal_surname': 'Quispe', 'identity_card': '1234567', 'gender': 'mujer', 'birth_date': '1990-04-12', 'email': 'maria@example.com', 'is_pastor': True, 'baptized': True, 'baptism_month': 5, 'baptism_year': 2015, 'father_identity_card': '000123'}
+        payload = {'names': 'María', 'paternal_surname': 'Quispe', 'identity_card': '1234567', 'gender': 'mujer', 'birth_date': '1990-04-12', 'email': 'maria@example.com', 'is_pastor': True, 'baptized': True, 'baptism_month': 5, 'baptism_year': 2015, 'father_identity_card': '000123', 'privacy_consent': True}
         response = client.post('/api/registro/', payload, content_type='application/json', HTTP_X_CSRFTOKEN=csrf)
         self.assertEqual(response.status_code, 201, response.content)
         member = Member.objects.get(pk=response.json()['id'])
@@ -173,9 +173,98 @@ class ApiTests(TestCase):
         self.assertIn('names', result.data)
         self.assertIn('identity_card', result.data)
 
+    def test_public_record_lookup_requires_matching_identity_and_birth_date(self):
+        member = Member.objects.create(names='Ana', paternal_surname='López', identity_card='445566', birth_date='1990-01-02', phone='+59170000000', email='ana@example.com')
+        client = APIClient()
+        response = client.post('/api/consulta-ficha/', {'identity_card': member.identity_card, 'birth_date': '1990-01-02'}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['names'], 'Ana')
+        self.assertNotIn('phone', response.data)
+        self.assertEqual(client.post('/api/consulta-ficha/', {'identity_card': member.identity_card, 'birth_date': '1990-01-03'}, format='json').status_code, 404)
+
+    def test_own_record_edits_are_audited_and_restricted(self):
+        from core_api.models import MemberChange
+        self.api.force_authenticate(self.pastor)
+        response = self.api.patch('/api/mi-ficha/', {'occupation': 'Docente'}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        change = MemberChange.objects.get(member=self.member)
+        self.assertEqual(change.actor, self.pastor)
+        self.assertEqual(change.changes['occupation'], {'before': '', 'after': 'Docente'})
+        response = self.api.get('/api/mi-ficha/')
+        self.assertEqual(response.data['history'][0]['changes']['occupation']['after'], 'Docente')
+        self.assertEqual(self.api.patch('/api/mi-ficha/', {'identity_card': '123'}, format='json').status_code, 400)
+        self.assertEqual(MemberChange.objects.count(), 1)
+        self.api.force_authenticate(None)
+        self.assertIn(self.api.patch('/api/mi-ficha/', {'occupation': 'Otra'}, format='json').status_code, (401, 403))
+
+    def test_lookup_grants_temporary_member_edit_and_audits(self):
+        from core_api.models import MemberChange
+        member = Member.objects.create(names='Ana', paternal_surname='Paz', identity_card='122334', birth_date='1990-01-02')
+        client = APIClient(enforce_csrf_checks=True)
+        csrf = client.get('/api/auth/csrf/').json()['csrfToken']
+        lookup = {'identity_card': '122334', 'birth_date': '1990-01-02'}
+        self.assertEqual(client.patch('/api/mi-ficha/', {'occupation': 'Docente'}, format='json', HTTP_X_CSRFTOKEN=csrf).status_code, 403)
+        self.assertEqual(client.post('/api/consulta-ficha/', lookup, format='json', HTTP_X_CSRFTOKEN=csrf).status_code, 200)
+        self.assertEqual(client.get('/api/mi-ficha/').data['member']['names'], 'Ana')
+        self.assertEqual(client.patch('/api/mi-ficha/', {'occupation': 'Docente'}, format='json').status_code, 403)
+        self.assertEqual(client.patch('/api/mi-ficha/', {'occupation': 'Docente'}, format='json', HTTP_X_CSRFTOKEN=csrf).status_code, 200)
+        change = MemberChange.objects.get(member=member)
+        self.assertIsNone(change.actor)
+        self.assertEqual(change.changes['occupation']['after'], 'Docente')
+        self.assertEqual(client.patch('/api/mi-ficha/', {'identity_card': '987'}, format='json', HTTP_X_CSRFTOKEN=csrf).status_code, 400)
+        session = client.session
+        session['member_lookup_grant'] = {'member_id': member.pk, 'expires': 1}
+        session.save()
+        self.assertEqual(client.get('/api/mi-ficha/').status_code, 403)
+
+    def test_own_religion_can_be_completed_and_is_audited(self):
+        from core_api.models import MemberChange, Baptism, Admission, Church, Department
+        department = Department.objects.create(name='Departamento de prueba')
+        church = Church.objects.create(name='Iglesia de prueba', department=department)
+        member = Member.objects.create(names='Ana', paternal_surname='Paz', identity_card='1234567', birth_date='1990-01-02')
+        client = APIClient()
+        client.post('/api/consulta-ficha/', {'identity_card': '1234567', 'birth_date': '1990-01-02'}, format='json')
+        data = {'religion': {'church': church.pk, 'baptized': True, 'baptism_month': 5, 'baptism_year': 2005, 'pastor_name': 'Pastor Pérez', 'admission_method': 'bautismo'}}
+        response = client.patch('/api/mi-ficha/', data, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        member.refresh_from_db()
+        self.assertEqual(member.church, church)
+        self.assertEqual(Baptism.objects.get(member=member).pastor_name, 'Pastor Pérez')
+        self.assertEqual(Admission.objects.get(member=member).method, 'bautismo')
+        self.assertEqual(MemberChange.objects.get(member=member).changes['religion.baptized']['after'], True)
+        data['religion']['baptism_year'] = 1800
+        self.assertEqual(client.patch('/api/mi-ficha/', data, format='json').status_code, 400)
+        self.assertEqual(Baptism.objects.get(member=member).year, 2005)
+        baptism = Baptism.objects.get(member=member)
+        baptism.notes = 'Registro con información adicional'
+        baptism.save(update_fields=['notes'])
+        data['religion'].update({'baptized': False, 'baptism_month': None, 'baptism_year': None, 'pastor_name': '', 'admission_method': ''})
+        self.assertEqual(client.patch('/api/mi-ficha/', data, format='json').status_code, 400)
+        self.assertTrue(Baptism.objects.filter(pk=baptism.pk).exists())
+
+    def test_own_record_updates_family_cards_and_department_with_history(self):
+        from core_api.models import Department, MemberChange
+        department = Department.objects.create(name='Departamento nuevo')
+        parent = Member.objects.create(names='Padre', identity_card='98765')
+        member = Member.objects.create(names='Ana', paternal_surname='Paz', identity_card='12345', birth_date='1990-01-02')
+        client = APIClient()
+        client.post('/api/consulta-ficha/', {'identity_card': '12345', 'birth_date': '1990-01-02'}, format='json')
+        response = client.patch('/api/mi-ficha/', {'department': department.pk, 'father_identity_card': '98765', 'mother_identity_card': '112233', 'spouse_identity_card': '445566'}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        member.refresh_from_db()
+        self.assertEqual(member.father, parent)
+        self.assertEqual(member.department_id, department.pk)
+        self.assertEqual(response.data['history'][0]['changes']['mother_identity_card']['after'], '112233')
+        self.assertEqual(MemberChange.objects.get(member=member).changes['department']['after'], department.pk)
+        self.assertEqual(client.patch('/api/mi-ficha/', {'mother_identity_card': '98765'}, format='json').status_code, 400)
+        self.assertEqual(client.patch('/api/mi-ficha/', {'spouse_identity_card': '12345'}, format='json').status_code, 400)
+        self.assertEqual(client.patch('/api/mi-ficha/', {'father_identity_card': ''}, format='json').status_code, 200)
+        member.refresh_from_db()
+        self.assertIsNone(member.father_id)
+
     def test_registration_rejects_under_one_and_duplicate_id(self):
         from django.utils import timezone
-        data = {'names': 'Juan', 'paternal_surname': 'Pérez', 'identity_card': '123', 'gender': 'hombre', 'birth_date': str(timezone.localdate())}
+        data = {'names': 'Juan', 'paternal_surname': 'Pérez', 'identity_card': '123', 'gender': 'hombre', 'birth_date': str(timezone.localdate()), 'privacy_consent': True}
         client = APIClient()
         self.assertEqual(client.post('/api/registro/', data, format='json').status_code, 400)
         data['birth_date'] = '1990-01-01'
@@ -183,17 +272,17 @@ class ApiTests(TestCase):
         self.assertEqual(client.post('/api/registro/', data, format='json').status_code, 400)
 
     def test_registration_rejects_officiating_pastor_when_not_baptized(self):
-        payload = {'names': 'Julia', 'paternal_surname': 'Paz', 'identity_card': '9876543', 'gender': 'mujer', 'birth_date': '1990-01-01', 'baptized': False, 'pastor_name': 'Pastor Ejemplo'}
+        payload = {'names': 'Julia', 'paternal_surname': 'Paz', 'identity_card': '9876543', 'gender': 'mujer', 'birth_date': '1990-01-01', 'baptized': False, 'pastor_name': 'Pastor Ejemplo', 'privacy_consent': True}
         response = APIClient().post('/api/registro/', payload, format='json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('pastor_name', response.data)
 
     def test_family_relationship_links_when_parent_registers_later(self):
         client = APIClient()
-        child_data = {'names': 'Hija', 'paternal_surname': 'Quispe', 'identity_card': '122', 'gender': 'mujer', 'birth_date': '2000-01-01', 'father_identity_card': '144'}
+        child_data = {'names': 'Hija', 'paternal_surname': 'Quispe', 'identity_card': '122', 'gender': 'mujer', 'birth_date': '2000-01-01', 'father_identity_card': '144', 'privacy_consent': True}
         child = client.post('/api/registro/', child_data, format='json')
         self.assertEqual(child.status_code, 201, child.data)
-        parent_data = {'names': 'Padre', 'paternal_surname': 'Quispe', 'identity_card': '144', 'gender': 'hombre', 'birth_date': '1970-01-01'}
+        parent_data = {'names': 'Padre', 'paternal_surname': 'Quispe', 'identity_card': '144', 'gender': 'hombre', 'birth_date': '1970-01-01', 'privacy_consent': True}
         parent = client.post('/api/registro/', parent_data, format='json')
         self.assertEqual(parent.status_code, 201, parent.data)
         self.assertEqual(Member.objects.get(pk=child.data['id']).father_id, parent.data['id'])
@@ -220,6 +309,27 @@ class ApiTests(TestCase):
 class GoogleOAuthTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='usuario_real', email='user@example.com', password='safe-password-123', role='administrador')
+
+    @override_settings(CORS_ALLOWED_ORIGINS=['http://localhost:5173'])
+    @patch('modules.accounts.infrastructure.google_oauth.verified_identity')
+    def test_registration_google_returns_email_without_logging_in(self, verify):
+        self.assertEqual(self.client.get('/api/auth/google/registration/', {'origin': 'https://evil.example'}).status_code, 403)
+        start = self.client.get('/api/auth/google/registration/', {'origin': 'http://localhost:5173', 'channel': 'a' * 32})
+        self.assertEqual(start.status_code, 302)
+        flow = self.client.session['google_oauth']
+        verify.return_value = {'email': 'New@example.com', 'sub': 'google-id', 'email_verified': True}
+        response = self.client.get('/api/auth/google/callback/', {'state': flow['state'], 'code': 'valid'})
+        self.assertRedirects(response, 'http://localhost:5173/?google_registration=success#email=new%40example.com&channel=' + 'a' * 32, fetch_redirect_response=False)
+        self.assertEqual(self.client.get('/api/auth/me/').status_code, 401)
+        self.assertFalse(User.objects.filter(email__iexact='new@example.com').exists())
+
+    @override_settings(CORS_ALLOWED_ORIGINS=['http://localhost:5173'])
+    @patch('modules.accounts.infrastructure.google_oauth.verified_identity')
+    def test_registration_google_rejects_bad_state(self, verify):
+        self.client.get('/api/auth/google/registration/', {'origin': 'http://localhost:5173', 'channel': 'a' * 32})
+        response = self.client.get('/api/auth/google/callback/', {'state': 'invalid', 'code': 'valid'})
+        self.assertIn('google_registration=error', response.url)
+        verify.assert_not_called()
 
     @patch('modules.accounts.infrastructure.google_oauth.verified_identity')
     def test_google_login_links_existing_user_and_photo(self, verify):

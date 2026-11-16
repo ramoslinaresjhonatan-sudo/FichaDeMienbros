@@ -34,6 +34,80 @@ def serializer_for(model):
 DepartmentSerializer = serializer_for(Department)
 ChurchSerializer = serializer_for(Church)
 MemberSerializer = serializer_for(Member)
+
+class OwnMemberSerializer(serializers.ModelSerializer):
+    church_name = serializers.CharField(source='church.name', read_only=True, default='')
+    church_department = serializers.CharField(source='church.department.name', read_only=True, default='')
+    department_name = serializers.CharField(source='department.name', read_only=True, default='')
+    baptism_info = serializers.SerializerMethodField()
+    religion = serializers.SerializerMethodField()
+
+    def get_religion(self, member):
+        baptism = member.baptisms.order_by('-id').first()
+        admission = member.admissions.order_by('-id').first()
+        return {'church': member.church_id, 'baptized': bool(baptism), 'baptism_month': baptism.month if baptism else None, 'baptism_year': baptism.year if baptism else None, 'pastor_name': baptism.pastor_name if baptism else '', 'admission_method': admission.method if admission else ''}
+
+    def get_baptism_info(self, member):
+        baptism = member.baptisms.order_by('-id').first()
+        if not baptism:
+            return None
+        return {'month': baptism.month, 'year': baptism.year, 'pastor_name': baptism.pastor_name}
+
+    class Meta:
+        model = Member
+        fields = ['names', 'paternal_surname', 'maternal_surname', 'identity_card', 'birth_date', 'birth_place', 'gender', 'marital_status', 'education_level', 'occupation', 'phone', 'email', 'address', 'department', 'previous_faith', 'father_name', 'father_identity_card', 'mother_name', 'mother_identity_card', 'spouse_name', 'spouse_identity_card', 'church_name', 'church_department', 'department_name', 'baptism_info', 'religion']
+        read_only_fields = ['identity_card', 'birth_date', 'email', 'church_name', 'church_department', 'department_name', 'baptism_info', 'religion']
+
+    def validate(self, attrs):
+        allowed = set(self.fields) - set(self.Meta.read_only_fields)
+        if set(self.initial_data) - allowed:
+            raise serializers.ValidationError('Algunos campos no se pueden modificar desde esta vista.')
+        for field in ('father_identity_card', 'mother_identity_card', 'spouse_identity_card'):
+            value = attrs.get(field, '')
+            if value and (not value.isascii() or not value.isdigit()):
+                raise serializers.ValidationError({field: 'Ingrese solo números.'})
+        member = self.instance
+        father = attrs.get('father_identity_card', member.father_identity_card)
+        mother = attrs.get('mother_identity_card', member.mother_identity_card)
+        spouse = attrs.get('spouse_identity_card', member.spouse_identity_card)
+        if member.identity_card and member.identity_card in (father, mother, spouse):
+            raise serializers.ValidationError('El carnet del miembro debe ser diferente al de sus familiares.')
+        if father and father == mother:
+            raise serializers.ValidationError({'mother_identity_card': 'Los carnets del padre y de la madre deben ser distintos.'})
+        for field in ('names', 'paternal_surname'):
+            if field in attrs and not attrs[field].strip():
+                raise serializers.ValidationError({field: 'Este campo no puede quedar vacío.'})
+        return attrs
+
+
+class OwnReligionSerializer(serializers.Serializer):
+    church = serializers.PrimaryKeyRelatedField(queryset=Church.objects.all(), allow_null=True)
+    baptized = serializers.BooleanField()
+    baptism_month = serializers.IntegerField(min_value=1, max_value=12, allow_null=True)
+    baptism_year = serializers.IntegerField(min_value=1900, max_value=9999, allow_null=True)
+    pastor_name = serializers.CharField(max_length=200, allow_blank=True)
+    admission_method = serializers.ChoiceField(choices=['bautismo', 'rebautismo', 'voto', 'transferencia'], allow_blank=True)
+
+    def validate(self, data):
+        member = self.context['member']
+        church = data['church']
+        if church and church.status != 'activa' and church.pk != member.church_id:
+            raise serializers.ValidationError({'church': 'Seleccione una iglesia activa.'})
+        if data['baptized']:
+            month, year = data['baptism_month'], data['baptism_year']
+            if not month or not year:
+                raise serializers.ValidationError({'baptism_year': 'Seleccione el mes y año de bautismo.'})
+            today = timezone.localdate()
+            if date(year, month, 1) > today.replace(day=1):
+                raise serializers.ValidationError({'baptism_year': 'El bautismo no puede estar en el futuro.'})
+            if member.birth_date and (year, month) < (member.birth_date.year, member.birth_date.month):
+                raise serializers.ValidationError({'baptism_year': 'El bautismo no puede ser anterior al nacimiento.'})
+        elif data['baptism_month'] or data['baptism_year'] or data['pastor_name'] or data['admission_method']:
+            raise serializers.ValidationError('Los datos de bautismo y admisión requieren marcar que está bautizado(a).')
+        if data['admission_method'] and not church:
+            raise serializers.ValidationError({'church': 'Seleccione la iglesia para registrar la admisión.'})
+        return data
+
 AdmissionSerializer = serializer_for(Admission)
 SeparationSerializer = serializer_for(Separation)
 
@@ -125,6 +199,7 @@ class RegistrationSerializer(ValidatedModelSerializer):
     baptism_year = serializers.IntegerField(min_value=1900, required=False, allow_null=True, write_only=True)
     pastor_name = serializers.CharField(required=False, allow_blank=True, max_length=200, write_only=True)
     admission_method = serializers.ChoiceField(choices=['bautismo', 'rebautismo', 'voto', 'transferencia'], required=False, allow_blank=True, write_only=True)
+    privacy_consent = serializers.BooleanField(write_only=True)
     names = serializers.CharField(max_length=150, trim_whitespace=True)
     paternal_surname = serializers.CharField(max_length=100, trim_whitespace=True)
     identity_card = serializers.RegexField(r'^[0-9]+$', max_length=40)
@@ -133,12 +208,14 @@ class RegistrationSerializer(ValidatedModelSerializer):
 
     class Meta:
         model = Member
-        fields = ['id', 'names', 'paternal_surname', 'maternal_surname', 'identity_card', 'birth_date', 'birth_place', 'gender', 'marital_status', 'education_level', 'occupation', 'phone', 'email', 'address', 'department', 'previous_faith', 'father_name', 'father_identity_card', 'mother_name', 'mother_identity_card', 'spouse_name', 'spouse_identity_card', 'church', 'is_pastor', 'baptized', 'baptism_month', 'baptism_year', 'pastor_name', 'admission_method']
+        fields = ['id', 'names', 'paternal_surname', 'maternal_surname', 'identity_card', 'birth_date', 'birth_place', 'gender', 'marital_status', 'education_level', 'occupation', 'phone', 'email', 'address', 'department', 'previous_faith', 'father_name', 'father_identity_card', 'mother_name', 'mother_identity_card', 'spouse_name', 'spouse_identity_card', 'church', 'is_pastor', 'baptized', 'baptism_month', 'baptism_year', 'pastor_name', 'admission_method', 'privacy_consent']
         read_only_fields = ['id']
 
     def validate(self, attrs):
         today = timezone.localdate()
         born = attrs['birth_date']
+        if not attrs.get('privacy_consent'):
+            raise serializers.ValidationError({'privacy_consent': 'Debe aceptar el tratamiento de datos para registrar una ficha.'})
         if (today.year - born.year - ((today.month, today.day) < (born.month, born.day))) < 1:
             raise serializers.ValidationError({'birth_date': 'La persona debe tener al menos un año de edad.'})
         if Member.objects.filter(identity_card=attrs['identity_card']).exists():
@@ -172,13 +249,14 @@ class RegistrationSerializer(ValidatedModelSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
+        validated_data.pop('privacy_consent', None)
         is_pastor = validated_data.pop('is_pastor', False)
         baptized = validated_data.pop('baptized', False)
         month = validated_data.pop('baptism_month', None)
         year = validated_data.pop('baptism_year', None)
         pastor_name = validated_data.pop('pastor_name', '')
         admission_method = validated_data.pop('admission_method', '')
-        member = save_entity(Member(**validated_data))
+        member = save_entity(Member(**validated_data, privacy_consent_at=timezone.now(), privacy_consent_version='2026-11'))
         for relation in ('father', 'mother'):
             identity = getattr(member, f'{relation}_identity_card')
             if identity:

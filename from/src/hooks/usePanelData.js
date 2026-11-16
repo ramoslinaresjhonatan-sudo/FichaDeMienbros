@@ -12,6 +12,13 @@ export default function usePanelData(view) {
   const [refresh, setRefresh] = useState(0)
 
   useEffect(() => {
+    if (view === 'admin') return
+    const reloadOptions = () => setRefresh((value) => value + 1)
+    window.addEventListener('focus', reloadOptions)
+    return () => window.removeEventListener('focus', reloadOptions)
+  }, [view])
+
+  useEffect(() => {
     registryService.getRegistrationOptions().then((data) => {
       setDepartmentsData(data.departments)
       setChurches(data.churches.map((church) => ({ ...church, active: true })))

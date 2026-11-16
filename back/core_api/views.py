@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import time
 from django.contrib.auth import authenticate, login, logout
 from django.db.models.deletion import ProtectedError
 from django.db.models import Q
@@ -9,14 +10,14 @@ from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
-from django.middleware.csrf import get_token
+from django.middleware.csrf import CsrfViewMiddleware, get_token
 from django.views.decorators.csrf import ensure_csrf_cookie, csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated, BasePermission, SAFE_METHODS
 from rest_framework.response import Response
-from core_api.models import Department, Church, ChurchRegistrationOrigin, Member, User, Admission, Baptism, Marriage, Death, Separation
+from core_api.models import Department, Church, ChurchRegistrationOrigin, Member, MemberChange, User, Admission, Baptism, Marriage, Death, Separation
 from core_api import serializers
 
 class IsAdministrator(BasePermission):
@@ -214,6 +215,15 @@ class SeparationViewSet(MemberEventViewSet):
 def csrf_token(request):
     return JsonResponse({'csrfToken': get_token(request)})
 
+
+def account_display_name(user):
+    if not user.member_id:
+        return user.username
+    member = user.member
+    initials = ' '.join(f'{surname.strip()[0].upper()}.' for surname in (member.paternal_surname, member.maternal_surname) if surname and surname.strip())
+    return ' '.join(part for part in (member.names.strip(), initials) if part) or user.username
+
+
 @csrf_protect
 @require_POST
 def sign_in(request):
@@ -235,14 +245,14 @@ def sign_in(request):
     if user is None or user.temporary_password:
         return JsonResponse({'detail': 'Credenciales inválidas.'}, status=401)
     login(request, user)
-    return JsonResponse({'id': user.id, 'username': user.username, 'email': user.email, 'picture': user.profile_picture, 'role': user.role, 'member': user.member_id, 'must_link_google': user.temporary_password and not user.google_subject, 'csrfToken': get_token(request)})
+    return JsonResponse({'id': user.id, 'username': user.username, 'display_name': account_display_name(user), 'email': user.email, 'picture': user.profile_picture, 'role': user.role, 'member': user.member_id, 'must_link_google': user.temporary_password and not user.google_subject, 'csrfToken': get_token(request)})
 
 @require_GET
 def session_user(request):
     if not request.user.is_authenticated:
         return JsonResponse({'detail': 'No hay una sesión activa.'}, status=401)
     user = request.user
-    return JsonResponse({'id': user.id, 'username': user.username, 'email': user.email, 'picture': user.profile_picture, 'role': user.role, 'must_link_google': user.temporary_password and not user.google_subject, 'csrfToken': get_token(request)})
+    return JsonResponse({'id': user.id, 'username': user.username, 'display_name': account_display_name(user), 'email': user.email, 'picture': user.profile_picture, 'role': user.role, 'member': user.member_id, 'must_link_google': user.temporary_password and not user.google_subject, 'csrfToken': get_token(request)})
 
 @csrf_protect
 @require_POST
@@ -272,3 +282,108 @@ def register_member(request):
     serializer.is_valid(raise_exception=True)
     member = serializer.save()
     return Response({'id': member.id}, status=status.HTTP_201_CREATED)
+
+
+@csrf_protect
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def lookup_member_record(request):
+    request.session.pop('member_lookup_grant', None)
+    identity_card = str(request.data.get('identity_card', '')).strip()
+    birth_date = request.data.get('birth_date')
+    member = Member.objects.filter(identity_card=identity_card, birth_date=birth_date).select_related('church', 'department').first()
+    if not member:
+        return Response({'detail': 'No se encontró una ficha con esos datos.'}, status=status.HTTP_404_NOT_FOUND)
+    request.session['member_lookup_grant'] = {'member_id': member.pk, 'expires': time.time() + 15 * 60}
+    return Response({
+        'names': member.names,
+        'paternal_surname': member.paternal_surname,
+        'maternal_surname': member.maternal_surname,
+        'birth_date': member.birth_date,
+        'birth_place': member.birth_place,
+        'gender': member.gender,
+        'marital_status': member.marital_status,
+        'education_level': member.education_level,
+        'occupation': member.occupation,
+        'church': member.church.name if member.church else '',
+        'department': member.department.name if member.department else '',
+        'status': member.status,
+    })
+
+
+@csrf_protect
+@api_view(['GET', 'PATCH'])
+@permission_classes([AllowAny])
+def own_member_record(request):
+    if request.method == 'PATCH':
+        csrf_failure = CsrfViewMiddleware(lambda req: None).process_view(request._request, lambda req: None, (), {})
+        if csrf_failure:
+            return Response({'detail': 'La verificación de seguridad falló. Recarga la página.'}, status=403)
+    grant = request.session.get('member_lookup_grant', {})
+    member_id = grant.get('member_id') if grant.get('expires', 0) > time.time() else None
+    if not member_id and request.user.is_authenticated:
+        member_id = request.user.member_id
+    if not member_id:
+        return Response({'detail': 'Consulta tu ficha nuevamente para continuar.'}, status=403)
+    if request.method == 'GET':
+        member = get_object_or_404(Member, pk=member_id)
+        history = member.change_history.select_related('actor')[:50]
+        return Response({'member': serializers.OwnMemberSerializer(member).data, 'history': [{'id': item.id, 'date': item.created_at, 'actor': account_display_name(item.actor) if item.actor_id else 'Consulta con carnet y fecha de nacimiento', 'changes': item.changes} for item in history]})
+    with transaction.atomic():
+        member = get_object_or_404(Member.objects.select_for_update(), pk=member_id)
+        payload = request.data.copy()
+        religion_data = payload.pop('religion', None)
+        serializer = serializers.OwnMemberSerializer(member, data=payload, partial=True)
+        serializer.is_valid(raise_exception=True)
+        changes = {}
+        for field, value in serializer.validated_data.items():
+            before = getattr(member, field)
+            if before != value:
+                changes[field] = {'before': before.pk if field == 'department' and before else before, 'after': value.pk if field == 'department' and value else value}
+        if religion_data is not None:
+            religion = serializers.OwnReligionSerializer(data=religion_data, context={'member': member})
+            religion.is_valid(raise_exception=True)
+            updated = religion.validated_data
+            before = serializers.OwnMemberSerializer(member).data['religion']
+            after = {**updated, 'church': updated['church'].pk if updated['church'] else None}
+            if before != after:
+                baptisms = list(member.baptisms.select_for_update().order_by('-id'))
+                admissions = list(member.admissions.select_for_update().order_by('-id'))
+                if len(baptisms) > 1 or len(admissions) > 1:
+                    return Response({'detail': 'Hay varios registros religiosos. Solicita a administración que realice el cambio.'}, status=400)
+                baptism = baptisms[0] if baptisms else None
+                admission = admissions[0] if admissions else None
+                if baptism and not updated['baptized'] and (baptism.date or baptism.pastor_id or baptism.church_id or baptism.place or baptism.notes):
+                    return Response({'detail': 'El bautismo contiene información adicional; solicita a administración su corrección.'}, status=400)
+                if admission and not updated['admission_method'] and admission.date:
+                    return Response({'detail': 'La admisión tiene fecha registrada; solicita a administración su corrección.'}, status=400)
+                if updated['baptized']:
+                    if baptism is None:
+                        baptism = Baptism(member=member)
+                    baptism.month, baptism.year, baptism.pastor_name = updated['baptism_month'], updated['baptism_year'], updated['pastor_name']
+                    baptism.save()
+                elif baptism:
+                    baptism.delete()
+                if updated['admission_method']:
+                    if admission is None:
+                        admission = Admission(member=member, church=updated['church'])
+                    admission.method = updated['admission_method']
+                    admission.save()
+                elif admission:
+                    admission.delete()
+                member.church = updated['church']
+                member.save(update_fields=['church'])
+                for key in before:
+                    if before[key] != after[key]:
+                        changes['religion.' + key] = {'before': before[key], 'after': after[key]}
+        if changes:
+            serializer.save()
+            for relation in ('father', 'mother'):
+                if relation + '_identity_card' in changes:
+                    identity = getattr(member, relation + '_identity_card')
+                    setattr(member, relation, Member.objects.filter(identity_card=identity).exclude(pk=member.pk).first() if identity else None)
+                    member.save(update_fields=[relation])
+            actor = request.user if request.user.is_authenticated and request.user.member_id == member.pk else None
+            MemberChange.objects.create(member=member, actor=actor, changes=changes)
+    history = member.change_history.select_related('actor')[:50]
+    return Response({'member': serializers.OwnMemberSerializer(member).data, 'changed': bool(changes), 'history': [{'id': item.id, 'date': item.created_at, 'actor': account_display_name(item.actor) if item.actor_id else 'Consulta con carnet y fecha de nacimiento', 'changes': item.changes} for item in history]})

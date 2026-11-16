@@ -405,6 +405,8 @@ button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
   font-size: 12px;
 }
 .page-shell .email-options button.is-active { border-color: var(--focus); background: var(--tint); color: var(--brand); }
+.page-shell .email-options .email-google-button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; padding-inline: 14px; color: var(--ink); font-weight: 600; }
+.page-shell .email-options .email-google-button svg { flex: none; }
 .page-shell .email-options button:disabled { opacity: .5; cursor: not-allowed; }
 .page-shell .field-note { color: var(--muted); font-size: 12px; line-height: 1.45; font-weight: 400; }
 .page-shell .family-groups { display: grid; gap: 14px; margin-top: 28px; }

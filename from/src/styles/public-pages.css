@@ -1,0 +1,121 @@
+/* Las páginas públicas comparten el fondo y las superficies de la ficha. */
+.welcome-page, .welcome-page.welcome-home, .public-church-page {
+  min-height: 100svh;
+  padding: 36px 24px;
+  color: #202c42;
+  background: url('../assets/login-paisaje-andino.png') center / cover fixed;
+}
+.welcome-home.welcome-focused .welcome-shell,
+.welcome-page .consent-card,
+.welcome-page .record-card {
+  border: 1px solid #e2e7ef;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 12px 40px #10275012;
+  padding: 32px;
+}
+.welcome-home.welcome-focused .welcome-shell { max-width: 540px; }
+.welcome-home .welcome-header { padding-bottom: 20px; gap: 18px; }
+.welcome-home .welcome-header img { width: min(240px, 100%); }
+.welcome-home.welcome-focused .welcome-intro { margin: 40px auto 26px; }
+.welcome-home .welcome-intro h1 { font-size: 28px; }
+.welcome-home .welcome-intro > p { display: none; }
+.welcome-home .welcome-registration {
+  max-width: 380px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.welcome-home .welcome-registration-icon,
+.welcome-home .welcome-registration h2 { display: none; }
+.welcome-home .welcome-registration > p { font-size: 12px; margin-bottom: 22px; }
+.welcome-home .welcome-register-button { border-radius: 5px; box-shadow: none; }
+.welcome-home .welcome-record-link { margin-top: 12px; }
+.welcome-home .welcome-footer { border-top: 1px solid #e2e7ef; padding-top: 18px; margin-top: 26px; }
+.welcome-page .consent-card > img,
+.welcome-page .record-card > img { width: min(240px, 100%); margin-bottom: 26px; }
+.welcome-page .consent-kicker { color: #657187; font-size: 10px; font-weight: 500; letter-spacing: .08em; }
+.welcome-page .consent-card h1,
+.welcome-page .record-card h1 { font-size: 25px; font-weight: 600; letter-spacing: -.5px; }
+.welcome-page .consent-details { border: 0; border-top: 1px solid #e2e7ef; border-bottom: 1px solid #e2e7ef; border-radius: 0; background: transparent; padding: 18px 0; }
+.welcome-page .record-result { border: 1px solid #e2e7ef; border-radius: 5px; background: #fafbfe; box-shadow: none; }
+.welcome-page .record-form input { border-color: #e2e7ef; border-radius: 5px; }
+.record-birth-date { display: grid; gap: 7px; min-width: 0; color: #304b67; font-size: 13px; font-weight: 700; }
+.record-birth-date .birth-date-selects { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.3fr) minmax(0, 1fr); gap: 6px; }
+.record-birth-date select { min-width: 0; min-height: 46px; padding-inline: 5px; border: 1px solid #e2e7ef; border-radius: 5px; background: #fff; color: #183052; }
+.welcome-page .consent-actions button,
+.welcome-page .record-form button,
+.welcome-page .record-back { border-radius: 5px; box-shadow: none; }
+.public-church-page > .public-church-header,
+.public-church-page > .public-church-hero,
+.public-church-page > .public-church-layout { max-width: 1040px; background: #fff; margin: 0 auto; padding: 24px 30px; border-inline: 1px solid #e2e7ef; }
+.public-church-page > .public-church-header { border-top: 1px solid #e2e7ef; border-radius: 6px 6px 0 0; }
+.public-church-page .public-church-header img { width: min(240px, 55vw); }
+.public-church-page .public-church-login { font-size: 12px; font-weight: 500; color: #657187; }
+.public-church-page > .public-church-hero { padding-top: 10px; padding-bottom: 8px; }
+.public-church-page .public-church-hero > p,
+.public-church-page .public-church-kicker { display: none; }
+.public-church-page .public-church-hero h1 { font-size: 28px; font-weight: 600; letter-spacing: -.5px; }
+.public-church-page .public-church-hero span { font-size: 14px; color: #657187; }
+.public-church-page > .public-church-layout { border-bottom: 1px solid #e2e7ef; border-radius: 0 0 6px 6px; gap: 24px; padding-bottom: 30px; }
+.public-church-page .public-church-form-card,
+.public-church-page .public-church-list-card { border: 0; border-radius: 0; background: transparent; box-shadow: none; padding: 0; min-width: 0; }
+.public-church-page .public-church-form-card { border-right: 1px solid #e2e7ef; padding-right: 24px; }
+.public-church-page .public-church-form-card h2,
+.public-church-page .public-church-list-card h2 { font-size: 17px; font-weight: 600; margin-bottom: 16px; }
+.public-church-page .public-church-form-card label { font-weight: 500; }
+.public-church-page .public-church-form-card input,
+.public-church-page .public-church-form-card select,
+.public-church-page .public-church-form-card button { border-radius: 5px; box-shadow: none; }
+/* Botones públicos con el mismo borde y acento que el panel administrativo. */
+.welcome-page .admin-primary,
+.welcome-home .welcome-registration .welcome-register-button,
+.public-church-page .public-church-form-card .admin-primary {
+  min-height: 44px;
+  border: 1px solid #18366b;
+  border-radius: 5px;
+  background: #fff;
+  color: #18366b;
+  box-shadow: 3px 3px 0 #91b4d6;
+  transition: box-shadow .15s ease, background-color .15s ease;
+}
+.welcome-page .admin-primary:hover,
+.welcome-page .admin-primary:focus-visible,
+.welcome-home .welcome-registration .welcome-register-button:hover,
+.welcome-home .welcome-registration .welcome-register-button:focus-visible,
+.public-church-page .public-church-form-card .admin-primary:hover,
+.public-church-page .public-church-form-card .admin-primary:focus-visible {
+  background: #f0f4fb;
+  color: #18366b;
+  box-shadow: 0 0 0 #91b4d6;
+}
+.welcome-page .secondary {
+  border: 1px solid #e2e7ef;
+  border-radius: 5px;
+  background: #fff;
+  color: #18366b;
+}
+.welcome-page .secondary:hover { background: #f0f4fb; border-color: #c8d5ea; }
+.welcome-home .welcome-registration .welcome-register-button {
+  background: #18366b;
+  color: #fff;
+  box-shadow: 3px 3px 0 #91b4d6;
+}
+.welcome-home .welcome-registration .welcome-register-button:hover,
+.welcome-home .welcome-registration .welcome-register-button:focus-visible {
+  background: #102750;
+  color: #fff;
+  box-shadow: 0 0 0 #91b4d6;
+}
+.welcome-page button:focus-visible,
+.public-church-page button:focus-visible { outline: 3px solid #7698d1; outline-offset: 3px; }
+@media (max-width: 760px) {
+  .welcome-page, .welcome-page.welcome-home, .public-church-page { padding: 24px 16px; background-attachment: scroll; }
+  .welcome-home.welcome-focused .welcome-shell,
+  .welcome-page .consent-card, .welcome-page .record-card { padding: 24px 20px; }
+  .welcome-home .welcome-header { align-items: center; gap: 12px; }
+  .public-church-page > .public-church-header,
+  .public-church-page > .public-church-hero,
+  .public-church-page > .public-church-layout { padding: 20px; }
+  .public-church-page .public-church-form-card { border-right: 0; padding-right: 0; border-bottom: 1px solid #e2e7ef; padding-bottom: 24px; }
+}

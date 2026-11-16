@@ -62,9 +62,10 @@ class PublicRegistrationRateLimitMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        if request.method == 'POST' and request.path == '/api/registro/':
+        if (request.method == 'POST' and request.path in ('/api/registro/', '/api/consulta-ficha/')) or (request.method == 'PATCH' and request.path == '/api/mi-ficha/' and not request.user.is_authenticated):
             address = request.META.get('REMOTE_ADDR', '')
-            key_material = f'registration:{address}'
+            action = 'lookup' if request.path == '/api/consulta-ficha/' else 'edit' if request.path == '/api/mi-ficha/' else 'registration'
+            key_material = f'{action}:{address}'
             key = hmac.new(settings.SECRET_KEY.encode(), key_material.encode(), hashlib.sha256).hexdigest()
             now = timezone.now()
             with transaction.atomic():
@@ -73,10 +74,11 @@ class PublicRegistrationRateLimitMiddleware:
                     entry.started_at, entry.attempts = now, 0
                 entry.attempts += 1
                 entry.save(update_fields=['started_at', 'attempts'])
-                blocked = entry.attempts > settings.PUBLIC_REGISTRATION_RATE_LIMIT
+                limit = 8 if action == 'lookup' else 30 if action == 'edit' else settings.PUBLIC_REGISTRATION_RATE_LIMIT
+                blocked = entry.attempts > limit
             if blocked:
-                audit.warning('public_registration_rate_limited')
-                response = JsonResponse({'detail': 'Demasiados registros desde esta conexión. Intenta más tarde.'}, status=429)
+                audit.warning('public_%s_rate_limited', action)
+                response = JsonResponse({'detail': 'Demasiados intentos desde esta conexión. Intenta más tarde.'}, status=429)
                 response['Retry-After'] = str(max(1, settings.PUBLIC_REGISTRATION_RATE_WINDOW - int((now - entry.started_at).total_seconds())))
                 return response
         return self.get_response(request)

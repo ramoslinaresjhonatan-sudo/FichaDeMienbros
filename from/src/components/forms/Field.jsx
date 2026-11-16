@@ -1,7 +1,7 @@
 export function Field({ label, name, type = 'text', className = '', ...props }) {
   return (
     <label className={`field ${className}`}>
-      <span>{label}{props.required && <b className="required"> *</b>}</span>
+      <span>{label}{props.required && <small className="field-required-note"> (obligatorio)</small>}</span>
       <input name={name} type={type} {...props} />
     </label>
   )

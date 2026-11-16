@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import secrets
+import re
 import time
 from urllib.parse import urlencode, urlsplit
 
@@ -27,14 +28,14 @@ def failure(reason):
     return redirect(f'{settings.FRONTEND_URL}/?google_error={reason}')
 
 
-def authorization_url(request, link_user_id=None):
+def authorization_url(request, link_user_id=None, registration=False):
     if not settings.GOOGLE_OAUTH_CLIENT_ID or not settings.GOOGLE_OAUTH_CLIENT_SECRET:
         return None
     state = secrets.token_urlsafe(32)
     nonce = secrets.token_urlsafe(32)
     verifier = secrets.token_urlsafe(64)
     challenge = base64.urlsafe_b64encode(hashlib.sha256(verifier.encode('ascii')).digest()).rstrip(b'=').decode('ascii')
-    request.session['google_oauth'] = {'state': state, 'nonce': nonce, 'verifier': verifier, 'created': time.time(), 'link_user_id': link_user_id}
+    request.session['google_oauth'] = {'state': state, 'nonce': nonce, 'verifier': verifier, 'created': time.time(), 'link_user_id': link_user_id, 'registration': registration}
     params = {
         'client_id': settings.GOOGLE_OAUTH_CLIENT_ID,
         'redirect_uri': settings.GOOGLE_OAUTH_REDIRECT_URI,
@@ -54,6 +55,23 @@ def google_start(request):
     url = authorization_url(request)
     if not url:
         return JsonResponse({'detail': 'El acceso con Google no está configurado.'}, status=503)
+    return redirect(url)
+
+
+@require_GET
+def google_registration_start(request):
+    origin = request.GET.get('origin', '')
+    if origin not in settings.CORS_ALLOWED_ORIGINS:
+        return JsonResponse({'detail': 'Origen no permitido.'}, status=403)
+    channel = request.GET.get('channel', '')
+    if not re.fullmatch(r'[a-f0-9]{32}', channel):
+        return JsonResponse({'detail': 'Solicitud de registro inválida.'}, status=400)
+    url = authorization_url(request, registration=True)
+    if not url:
+        return redirect(f'{origin}/?google_registration=error#{urlencode({"channel": channel})}')
+    request.session['google_oauth']['return_origin'] = origin
+    request.session['google_oauth']['channel'] = channel
+    request.session.modified = True
     return redirect(url)
 
 
@@ -94,11 +112,20 @@ def google_callback(request):
     flow = request.session.pop('google_oauth', None)
     state = request.GET.get('state', '')
     code = request.GET.get('code', '')
+    registration = bool(flow and flow.get('registration'))
+    return_origin = flow.get('return_origin', settings.FRONTEND_URL) if flow else settings.FRONTEND_URL
+    channel = flow.get('channel', '') if flow else ''
+    if return_origin not in settings.CORS_ALLOWED_ORIGINS:
+        return_origin = settings.FRONTEND_URL
     if not flow or not state or not constant_time_compare(state, flow['state']) or time.time() - flow['created'] > 600 or not code:
+        if registration:
+            return redirect(f'{return_origin}/?google_registration=error#{urlencode({"channel": channel})}')
         return failure('invalid')
     try:
         claims = verified_identity(code, flow)
         email = claims['email'].strip().lower()
+        if registration:
+            return redirect(f'{return_origin}/?google_registration=success#{urlencode({"email": email, "channel": channel})}')
         with transaction.atomic():
             link_user_id = flow.get('link_user_id')
             if link_user_id:
@@ -123,5 +150,7 @@ def google_callback(request):
             user.save(update_fields=fields)
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
     except (requests.RequestException, GoogleAuthError, ValueError, KeyError, IntegrityError):
+        if registration:
+            return redirect(f'{return_origin}/?google_registration=error#{urlencode({"channel": channel})}')
         return failure('failed')
     return redirect(f'{settings.FRONTEND_URL}/?google_login=success')

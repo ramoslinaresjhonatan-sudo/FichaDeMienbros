@@ -32,12 +32,19 @@ import AccessManagementFeature from '../features/access/AccessManagement.jsx'
 import EventModalFeature from '../features/events/EventModal.jsx'
 import LoginView from '../features/auth/LoginView.jsx'
 import GoogleLinkView from '../features/auth/GoogleLinkView.jsx'
+import WelcomeView from '../features/welcome/WelcomeView.jsx'
+import ConsentView from '../features/welcome/ConsentView.jsx'
+import MemberRecordView from '../features/welcome/MemberRecordView.jsx'
+import OwnMemberRecord from '../features/welcome/OwnMemberRecord.jsx'
+import '../styles/public-pages.css'
+import '../styles/form-feedback.css'
+import '../styles/own-record.css'
 
 defineCustomElement()
 
-const sectionIcons = { miembros: peopleOutline, pastores: personOutline, iglesias: homeOutline, accesos: shieldCheckmarkOutline, estadisticas: statsChartOutline }
+const sectionIcons = { miembros: peopleOutline, mificha: documentTextOutline, pastores: personOutline, iglesias: homeOutline, accesos: shieldCheckmarkOutline, estadisticas: statsChartOutline }
 
-function Registration({ onBack, backLabel, churches, departmentsData, theme, accountEmail, isPastor = false, onRegistered }) {
+function Registration({ onBack, backLabel, churches, departmentsData, theme, accountEmail, isPastor = false, onRegistered, privacyConsent = false }) {
   const [step, setStep] = useState(0)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -46,6 +53,10 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
   const [phone, setPhone] = useState('')
   const [emailUser, setEmailUser] = useState('')
   const [emailMode, setEmailMode] = useState('manual')
+  const [googleEmail, setGoogleEmail] = useState('')
+  const [googleError, setGoogleError] = useState('')
+  const googlePopupRef = useRef(null)
+  const googleChannelRef = useRef('')
   const [baptized, setBaptized] = useState(false)
   const [hasSpouse, setHasSpouse] = useState(false)
   const [churchDepartment, setChurchDepartment] = useState('')
@@ -53,6 +64,43 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
   const formRef = useRef(null)
   const isLastStep = step === registrationSteps.length - 1
   const daysInMonth = birthDate.month ? new Date(Number(birthDate.year) || 2000, Number(birthDate.month), 0).getDate() : 31
+
+  useEffect(() => {
+    function applyGoogleEmail(data) {
+      if (data?.type !== 'ficha-google-email' || !googleChannelRef.current || data.channel !== googleChannelRef.current) return
+      googleChannelRef.current = ''
+      googlePopupRef.current = null
+      if (data.result === 'success' && typeof data.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+        setGoogleEmail(data.email)
+        setEmailMode('google')
+        setGoogleError('')
+      } else setGoogleError('No se pudo obtener el correo de Google. Intenta otra vez o escríbelo manualmente.')
+    }
+    function receiveGoogleEmail(event) {
+      if (event.origin !== window.location.origin || event.source !== googlePopupRef.current || event.data?.type !== 'ficha-google-email') return
+      applyGoogleEmail(event.data)
+    }
+    function receiveStoredEmail(event) {
+      if (event.key !== `ficha-google-email-${googleChannelRef.current}` || !event.newValue) return
+      try { applyGoogleEmail(JSON.parse(event.newValue)) } catch { /* Ignore invalid messages. */ }
+    }
+    window.addEventListener('message', receiveGoogleEmail)
+    window.addEventListener('storage', receiveStoredEmail)
+    return () => { window.removeEventListener('message', receiveGoogleEmail); window.removeEventListener('storage', receiveStoredEmail); googlePopupRef.current?.close() }
+  }, [])
+
+  function chooseGoogleEmail() {
+    setGoogleError('')
+    const url = new URL(googleStartUrl)
+    url.pathname = url.pathname.replace(/\/start\/?$/, '/registration/')
+    url.searchParams.set('origin', window.location.origin)
+    const channel = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
+    googleChannelRef.current = channel
+    url.searchParams.set('channel', channel)
+    const popup = window.open(url.toString(), 'ficha-google-email', 'popup,width=520,height=680')
+    if (!popup) { setGoogleError('El navegador bloqueó la ventana de Google. Permite ventanas emergentes o escribe tu correo.'); return }
+    googlePopupRef.current = popup
+  }
 
   function updateBirthDate(part, value) {
     formRef.current?.elements.anioNacimiento.setCustomValidity('')
@@ -112,7 +160,7 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
       church: value('iglesia') ? Number(value('iglesia')) : null, is_pastor: isPastor, baptized,
       baptism_month: baptized && value('mesBautismo') ? Number(value('mesBautismo')) : null,
       baptism_year: baptized && value('anioBautismo') ? Number(value('anioBautismo')) : null,
-      pastor_name: baptized ? value('pastorOficiante') : '', admission_method: baptized ? admissionMethods[value('formaAdmision')] || '' : '',
+      pastor_name: baptized ? value('pastorOficiante') : '', admission_method: baptized ? admissionMethods[value('formaAdmision')] || '' : '', privacy_consent: privacyConsent,
     }
     if (isPastor && !payload.email) { setSubmitError('El correo es obligatorio para registrar un pastor.'); setStep(1); return }
     setSubmitError('')
@@ -131,10 +179,10 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
       <NameField label="Nombres" name="nombres" className="full" autoFocus required placeholder="Ej. María Elena" />
       <NameField label="Apellido paterno" name="apellidoPaterno" required placeholder="Ej. Quispe" />
       <NameField label="Apellido materno" name="apellidoMaterno" placeholder="Ej. Mamani" />
-      <label className="field"><span>Género <b className="required">*</b></span><select name="genero" defaultValue="" required><option value="">Seleccione una opción</option><option>Hombre</option><option>Mujer</option></select></label>
+      <label className="field"><span>Género <small className="field-required-note">(obligatorio)</small></span><select name="genero" defaultValue="" required><option value="">Seleccione una opción</option><option>Hombre</option><option>Mujer</option></select></label>
       <IdentityField label="Carnet de identidad" name="carnet" required placeholder="Ej. 1234567" />
       <div className="field birth-date">
-        <span id="birth-date-label">Fecha de nacimiento <b className="required">*</b></span>
+        <span id="birth-date-label">Fecha de nacimiento <small className="field-required-note">(obligatorio)</small></span>
         <div className="birth-date-selects" role="group" aria-labelledby="birth-date-label">
           <select aria-label="Día de nacimiento" name="diaNacimiento" required value={birthDate.day} onChange={(event) => updateBirthDate('day', event.target.value)}>
             <option value="">Día</option>
@@ -160,11 +208,12 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
       <div className="field email-field"><span>Correo electrónico</span>
         <div className="email-options" aria-label="Opciones de correo">
           <Button variant="bare" className={emailMode === 'manual' ? 'is-active' : ''} aria-pressed={emailMode === 'manual'} onClick={() => setEmailMode('manual')}>Escribir Gmail</Button>
-          <Button variant="bare" className={emailMode === 'account' ? 'is-active' : ''} aria-pressed={emailMode === 'account'} disabled={!accountEmail} onClick={() => setEmailMode('account')}>Usar correo de sesión</Button>
+          <Button variant="bare" className={`email-google-button ${emailMode === 'google' ? 'is-active' : ''}`} aria-pressed={emailMode === 'google'} onClick={chooseGoogleEmail}><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.19 3.32v2.76h3.56c2.08-1.92 3.27-4.75 3.27-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.11A6.61 6.61 0 0 1 5.5 12c0-.73.13-1.44.34-2.11V7.05H2.18a11 11 0 0 0 0 9.9z"/><path fill="#EA4335" d="M12 5.36c1.62 0 3.06.56 4.2 1.64l3.15-3.15A10.57 10.57 0 0 0 12 1a11 11 0 0 0-9.82 6.05l3.66 2.84C6.71 7.29 9.14 5.36 12 5.36z"/></svg>Continuar con Google</Button>
+          {accountEmail && <Button variant="bare" className={emailMode === 'account' ? 'is-active' : ''} aria-pressed={emailMode === 'account'} onClick={() => setEmailMode('account')}>Usar correo de sesión</Button>}
         </div>
-        {emailMode === 'manual' ? <div className="input-affix"><input aria-label="Nombre de usuario de Gmail" type="text" autoComplete="off" placeholder="nombre" pattern="[A-Za-z0-9]+([.][A-Za-z0-9]+)*" title="Usa letras, números y puntos entre caracteres." value={emailUser} onChange={(event) => setEmailUser(event.target.value.split('@')[0].replace(/\s/g, ''))} /><span aria-hidden="true">@gmail.com</span></div> : <input aria-label="Correo de la sesión" type="email" value={accountEmail} readOnly />}
-        <input type="hidden" name="correo" value={emailMode === 'account' ? accountEmail : emailUser ? `${emailUser}@gmail.com` : ''} />
-        {!accountEmail && <small className="field-note">Inicia sesión para usar el correo de tu cuenta.</small>}
+        {emailMode === 'manual' ? <><div className="input-affix"><input aria-label="Parte del correo antes de arroba Gmail" type="text" autoComplete="off" placeholder="Ej. juan.perez" pattern="[A-Za-z0-9]+([.][A-Za-z0-9]+)*" title="Escribe la parte anterior a @gmail.com, usando letras, números y puntos entre caracteres." value={emailUser} onChange={(event) => setEmailUser(event.target.value.split('@')[0].replace(/\s/g, ''))} /><span aria-hidden="true">@gmail.com</span></div><small className="field-note">Escribe solo la parte anterior a @gmail.com.</small></> : <input aria-label="Correo seleccionado" type="email" value={emailMode === 'google' ? googleEmail : accountEmail} readOnly />}
+        <input type="hidden" name="correo" value={emailMode === 'google' ? googleEmail : emailMode === 'account' ? accountEmail : emailUser ? `${emailUser}@gmail.com` : ''} />
+        {googleError && <small className="church-error" role="alert">{googleError}</small>}
       </div>
       <Field label="Dirección de domicilio" name="direccion" className="full" placeholder="Zona, calle, número y referencia" />
       <label className="field"><span>Departamento</span><select name="departamento" defaultValue=""><option value="">Seleccione un departamento</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
@@ -195,7 +244,7 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
     </div>,
     <div className="fields two-columns" key="religiosa">
       <label className="field"><span>Departamento de la iglesia</span><select value={churchDepartment} onChange={(event) => { setChurchDepartment(event.target.value); setSelectedChurch('') }}><option value="">Todos los departamentos</option>{departmentsData.map((department) => <option key={department.id} value={department.name}>{department.name}</option>)}</select></label>
-      <label className="field"><span>Iglesia</span><select name="iglesia" value={selectedChurch} onChange={(event) => setSelectedChurch(event.target.value)}><option value="">Seleccione una iglesia</option>{churches.filter((church) => church.active && (!churchDepartment || church.department === churchDepartment)).map((church) => <option key={church.id} value={church.id}>{church.name} — {church.department}</option>)}</select></label>
+      <div className="field"><label htmlFor="registration-church">Iglesia</label><select id="registration-church" name="iglesia" value={selectedChurch} onChange={(event) => setSelectedChurch(event.target.value)}><option value="">Seleccione una iglesia</option>{churches.filter((church) => church.active && (!churchDepartment || church.department === churchDepartment)).map((church) => <option key={church.id} value={church.id}>{church.name} — {church.department}</option>)}</select><small className="church-registration-help">¿No aparece? <a href="/iglesias" target="_blank" rel="noopener noreferrer">Registra tu iglesia ↗</a> (abre otra pestaña)</small></div>
       <label className="baptism-check full"><input type="checkbox" name="bautizado" checked={baptized} onChange={(event) => updateBaptized(event.target.checked)} /><span>¿Es bautizado(a)?</span></label>
       <label className="field"><span>Mes de bautismo</span><select name="mesBautismo" required={baptized} disabled={!baptized} defaultValue=""><option value="">Seleccione el mes</option>{months.map((month, index) => <option key={month} value={index + 1}>{month}</option>)}</select></label>
       <label className="field"><span>Año de bautismo</span><select name="anioBautismo" required={baptized} disabled={!baptized} defaultValue=""><option value="">Seleccione el año</option>{years.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
@@ -418,12 +467,13 @@ function EventModal({ onClose, ...props }) {
 }
 
 function App() {
-  const [view, setView] = useState('login')
+  const [view, setView] = useState('welcome')
   const [registrationOrigin, setRegistrationOrigin] = useState('admin')
   const [accountEmail, setAccountEmail] = useState('')
   const [accountName, setAccountName] = useState('')
   const [accountPicture, setAccountPicture] = useState('')
   const [accountRole, setAccountRole] = useState('')
+  const [accountMember, setAccountMember] = useState(null)
   const [theme, setTheme] = useTheme()
   const [sidebarExpanded, setSidebarExpanded] = useState(() => !window.matchMedia('(max-width: 760px)').matches)
   const [sidebarHidden, setSidebarHidden] = useState(false)
@@ -440,6 +490,25 @@ function App() {
     return error ? (error === 'unauthorized' ? 'La cuenta de Google no coincide con el correo autorizado para tu usuario.' : 'No se pudo vincular o iniciar sesión con Google. Inténtalo de nuevo.') : ''
   })
   const [linkBusy, setLinkBusy] = useState(false)
+  const [directRegistrationConsent, setDirectRegistrationConsent] = useState(false)
+  useEffect(() => {
+    function updateField(event) {
+      const field = event.target
+      if (!field.matches('form input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), form select, form textarea')) return
+      const form = field.form
+      requestAnimationFrame(() => {
+        if (!form) return
+        form.querySelectorAll('input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), select, textarea').forEach((input) => {
+          const filled = input.value.trim().length > 0
+          input.classList.toggle('field-filled', filled && input.validity.valid)
+          input.classList.toggle('field-needs-attention', filled && !input.validity.valid)
+        })
+      })
+    }
+    document.addEventListener('input', updateField)
+    document.addEventListener('change', updateField)
+    return () => { document.removeEventListener('input', updateField); document.removeEventListener('change', updateField) }
+  }, [])
   const { churches, setChurches, departmentsData, membersData, pastorsData, eventsData, panelError, setPanelError, refresh: refreshPanel } = usePanelData(view)
   const [copyMessage, setCopyMessage] = useState('')
   const [showPastorLink, setShowPastorLink] = useState(false)
@@ -448,11 +517,16 @@ function App() {
     const googleError = params.get('google_error')
     if (params.has('google_login') || googleError) window.history.replaceState(null, '', window.location.pathname)
     authService.getCurrentUser().then((user) => {
+      if (sessionStorage.getItem('ficha-completar-datos') && user.member) {
+        setSection('mificha')
+        sessionStorage.removeItem('ficha-completar-datos')
+      }
       setAccountEmail(user.email)
-      setAccountName(user.username)
+      setAccountName(user.display_name || user.username)
       setAccountPicture(user.picture || '')
       setAccountRole(user.role)
-      setView((current) => current === 'login' && window.location.pathname === '/' ? (user.must_link_google ? 'link-google' : 'admin') : current)
+      setAccountMember(user.member || null)
+      setView((current) => (current === 'login' || current === 'welcome') && window.location.pathname === '/' ? (user.must_link_google ? 'link-google' : 'admin') : current)
     }).catch(() => {})
   }, [])
   useEffect(() => {
@@ -467,6 +541,7 @@ function App() {
   const memberCategories = { miembros: 'Todos', bautizos: 'Bautizos', fallecimientos: 'Fallecimientos', matrimonios: 'Matrimonios' }
   const sections = {
     miembros: { label: 'Miembros', heading: 'Miembros de la iglesia', title: 'Registros de miembros', description: 'Información de las personas registradas', search: 'Buscar por nombre o carnet' },
+    ...(accountMember ? { mificha: { label: 'Mi ficha', heading: 'Mi ficha', title: 'Mi ficha' } } : {}),
     pastores: { label: 'Pastores', heading: 'Pastores', title: 'Directorio de pastores', description: 'Información de los pastores', search: 'Buscar pastor' },
     iglesias: { label: 'Iglesias', heading: 'Iglesias', title: 'Directorio de iglesias', description: 'Información de las iglesias', search: 'Buscar iglesia' },
     estadisticas: { label: 'Estadísticas', heading: 'Estadísticas', title: 'Estadísticas' },
@@ -477,13 +552,19 @@ function App() {
 
   if (window.location.pathname.replace(/\/+$/, '') === '/carga') return <LoadingView theme={theme} />
 
-  if (window.location.pathname.replace(/\/+$/, '') === '/registro-miembro') return <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} onBack={() => window.location.assign('/')} backLabel="Volver al inicio" />
+  if (window.location.pathname.replace(/\/+$/, '') === '/registro-miembro') return directRegistrationConsent ? <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} privacyConsent onBack={() => window.location.assign('/')} backLabel="Volver al inicio" /> : <ConsentView onAccept={() => setDirectRegistrationConsent(true)} onBack={() => window.location.assign('/')} />
 
-  if (window.location.pathname.replace(/\/+$/, '') === '/registro-pastor') return <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} isPastor onBack={() => window.location.assign('/')} backLabel="Volver al inicio" />
+  if (window.location.pathname.replace(/\/+$/, '') === '/registro-pastor') return directRegistrationConsent ? <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} isPastor privacyConsent onBack={() => window.location.assign('/')} backLabel="Volver al inicio" /> : <ConsentView onAccept={() => setDirectRegistrationConsent(true)} onBack={() => window.location.assign('/')} />
 
   if (window.location.pathname.replace(/\/+$/, '') === '/iglesias') return <PublicChurchDirectory />
 
-  if (view === 'registro') return <Registration churches={churches} departmentsData={departmentsData} theme={registrationOrigin === 'admin' ? theme : 'light'} accountEmail={accountEmail} onRegistered={refreshPanel} onBack={() => setView(registrationOrigin)} backLabel={registrationOrigin === 'login' ? 'Volver al inicio' : 'Volver al panel'} />
+  if (view === 'registro') return <Registration churches={churches} departmentsData={departmentsData} theme={registrationOrigin === 'admin' ? theme : 'light'} accountEmail={accountEmail} privacyConsent onRegistered={refreshPanel} onBack={() => setView(registrationOrigin)} backLabel={registrationOrigin === 'admin' ? 'Volver al panel' : 'Volver al inicio'} />
+
+  if (view === 'consent') return <ConsentView onAccept={() => setView('registro')} onBack={() => setView('welcome')} />
+
+  if (view === 'record') return <MemberRecordView onBack={() => setView('welcome')} />
+
+  if (view === 'welcome') return <WelcomeView onAdmin={() => setView('login')} onRecord={() => setView('record')} onRegister={() => { setRegistrationOrigin('welcome'); setView('consent') }} />
 
   if (view === 'link-google') return <GoogleLinkView error={loginError} busy={linkBusy} onLink={async () => { setLoginError(''); setLinkBusy(true); try { const result = await authService.beginGoogleLink(); window.location.assign(result.url) } catch (error) { setLoginError(error.message || 'No se pudo iniciar la vinculación.'); setLinkBusy(false) } }} onLogout={async () => { try { await authService.logout(); setAccountEmail(''); setAccountName(''); setAccountPicture(''); setAccountRole(''); setLoginError(''); setView('login') } catch (error) { setLoginError(error.message || 'No se pudo cerrar sesión.') } }} />
 
@@ -499,7 +580,7 @@ function App() {
     </div></main>
   )
 
-  if (view === 'login') return <LoginView error={loginError} onLogin={async (credentials) => { setLoginError(''); try { const user = await authService.login(credentials); setAccountEmail(user.email); setAccountName(user.username); setAccountPicture(user.picture || ''); setAccountRole(user.role); setView(user.must_link_google ? 'link-google' : 'admin') } catch (error) { setLoginError(error.message || 'No se pudo iniciar sesión.') } }} onRegister={() => { setRegistrationOrigin('login'); setView('registro') }} />
+  if (view === 'login') return <LoginView onBack={() => setView('welcome')} error={loginError} onLogin={async (credentials) => { setLoginError(''); try { const user = await authService.login(credentials); setAccountEmail(user.email); setAccountName(user.display_name || user.username); setAccountPicture(user.picture || ''); setAccountRole(user.role); setAccountMember(user.member || null); if (sessionStorage.getItem('ficha-completar-datos') && user.member) { setSection('mificha'); sessionStorage.removeItem('ficha-completar-datos') } setView(user.must_link_google ? 'link-google' : 'admin') } catch (error) { setLoginError(error.message || 'No se pudo iniciar sesión.') } }} />
 
   if (view === '__legacy-login') return (
     <main className="login-page">
@@ -535,7 +616,7 @@ function App() {
         {panelError && <p className="church-error" role="alert">{panelError}</p>}
         <div className="admin-welcome"><div>{section !== 'pastores' && <h1>{activeSection.heading}</h1>}</div>{section === 'pastores' && <Button className="add-button" onClick={async () => { const url = new URL('/registro-pastor', window.location.origin).href; setShowPastorLink(true); try { await navigator.clipboard.writeText(url); setCopyMessage('Enlace copiado.') } catch { setCopyMessage('No se pudo copiar automáticamente. Selecciona el enlace para copiarlo.') } }}>Copiar enlace de registro</Button>}</div>
         {section === 'pastores' && showPastorLink && <div className="pastor-link-box"><label className="field"><span>Enlace para pastores</span><input value={new URL('/registro-pastor', window.location.origin).href} readOnly onFocus={(event) => event.target.select()} /></label><p role="status">{copyMessage}</p></div>}
-        {section === 'estadisticas' ? <Statistics members={membersData} departments={departmentsData} pastors={pastorsData} events={eventsData} /> : section === 'accesos' && accountRole === 'administrador' ? <AccessManagementFeature members={membersData} onChanged={refreshPanel} /> : section === 'iglesias' ? <ChurchDirectoryFeature churches={churches} setChurches={setChurches} departmentsData={departmentsData} canEdit={accountRole === 'administrador'} /> : section === 'pastores' ? <section className="members-card church-directory">
+        {section === 'mificha' ? <OwnMemberRecord /> : section === 'estadisticas' ? <Statistics members={membersData} departments={departmentsData} pastors={pastorsData} events={eventsData} /> : section === 'accesos' && accountRole === 'administrador' ? <AccessManagementFeature members={membersData} onChanged={refreshPanel} /> : section === 'iglesias' ? <ChurchDirectoryFeature churches={churches} setChurches={setChurches} departmentsData={departmentsData} canEdit={accountRole === 'administrador'} /> : section === 'pastores' ? <section className="members-card church-directory">
           <div className="church-table-wrap"><table className="church-table pastors-table"><thead><tr><th scope="col">Nombre</th><th scope="col">Apellido</th><th scope="col">Edad</th></tr></thead><tbody>{pastorsData.map(({ id, member }) => <tr key={id}><td>{member.names}</td><td>{[member.paternal_surname, member.maternal_surname].filter(Boolean).join(' ')}</td><td>{calculateAge(member.birth_date)}</td></tr>)}{!pastorsData.length && <tr><td colSpan="3" className="church-empty">No hay pastores disponibles.</td></tr>}</tbody></table></div>
         </section> : <>
         {section === 'miembros' && <nav className="member-categories" aria-label="Tipos de registro de miembros">{Object.entries(memberCategories).map(([key, label]) => <Button key={key} variant="bare" className={`category-button ${memberCategory === key ? 'is-active' : ''}`} aria-pressed={memberCategory === key} onClick={() => { setMemberCategory(key); setQuery(''); setEventFormOpen(false) }}>{label}</Button>)}</nav>}

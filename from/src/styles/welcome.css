@@ -1,0 +1,65 @@
+.welcome-page { min-height:100svh; padding:clamp(22px,5vw,62px); color:#183052; background:linear-gradient(115deg,#0d1a2baf,#183b63b8),url('../assets/login-paisaje-andino.png') center/cover; }.welcome-shell { max-width:1120px; margin:auto; }.welcome-header { display:flex; align-items:center; justify-content:space-between; gap:20px; }.welcome-header img, .consent-card > img, .record-card > img { width:min(270px,72vw); height:auto; }.welcome-header a { color:#fff; font-size:13px; font-weight:700; text-decoration:none; }.welcome-intro { max-width:660px; margin:clamp(55px,10vw,110px) 0 30px; color:#fff; }.welcome-intro p, .welcome-option > p, .consent-kicker { margin:0; color:#9fc8eb; font-size:11px; font-weight:800; letter-spacing:.14em; }.welcome-intro h1 { margin:8px 0 12px; font-size:clamp(38px,6vw,66px); letter-spacing:-.05em; }.welcome-intro span { font-size:16px; line-height:1.65; opacity:.92; }.welcome-options { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }.welcome-option { display:flex; flex-direction:column; min-height:300px; padding:27px; border:1px solid #ffffff3b; border-radius:14px; background:#fffffff2; box-shadow:0 18px 40px #06101e36; }.welcome-option--admin { color:#fff; background:linear-gradient(145deg,#234f80,#163257); }.welcome-option__symbol { display:grid; place-items:center; width:47px; height:47px; margin-bottom:23px; border-radius:12px; background:#e3effa; color:#285986; font-size:24px; font-weight:800; }.welcome-option--admin .welcome-option__symbol { background:#ffffff21; color:#d8ebfc; }.welcome-option h2 { margin:7px 0 10px; font-size:24px; }.welcome-option > span:not(.welcome-option__symbol) { color:#607188; font-size:14px; line-height:1.6; }.welcome-option--admin > span:not(.welcome-option__symbol) { color:#d7e7f7; }.welcome-option button { justify-content:space-between; width:100%; margin-top:auto; }.welcome-option button b { font-size:20px; }.welcome-option--admin button { background:#fff; color:#17385f; }.welcome-footer { margin:27px 0 0; color:#d6e6f5; font-size:12px; text-align:center; }
+.consent-card, .record-card { width:min(100%,660px); margin:auto; padding:clamp(27px,5vw,46px); border:1px solid #ffffffa6; border-radius:16px; background:#fffffff2; box-shadow:0 25px 70px #0916265e; }.consent-card > img, .record-card > img { display:block; margin:0 auto 30px; }.consent-card h1, .record-card h1 { margin:8px 0 12px; font-size:29px; }.consent-card > p:not(.consent-kicker), .record-card > p:not(.consent-kicker) { color:#5b6d82; font-size:14px; line-height:1.65; }.consent-details { margin:23px 0; padding:18px; border-left:4px solid #638fbb; border-radius:7px; background:#eef5fb; }.consent-details h2 { margin:0 0 10px; font-size:15px; }.consent-details ul { margin:0; padding-left:18px; color:#405b75; font-size:13px; line-height:1.65; }.consent-details p { margin:13px 0 0; color:#405b75; font-size:13px; line-height:1.55; }.consent-check { display:flex; gap:11px; align-items:flex-start; color:#304b67; font-size:13px; line-height:1.55; }.consent-check input { width:18px; height:18px; margin-top:1px; accent-color:#315f90; }.consent-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:23px; }.record-form { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:23px; }.record-form label { display:grid; gap:7px; color:#304b67; font-size:13px; font-weight:700; }.record-form input { min-height:46px; padding:9px 12px; border:1px solid #becfe0; border-radius:6px; background:#fff; color:#183052; font:inherit; }.record-form button { grid-column:1/-1; justify-content:center; }.record-result { margin-top:23px; padding:20px; border:1px solid #d6e3ef; border-radius:9px; background:#f6faff; }.record-result > p { margin:0; color:#557fa8; font-size:10px; font-weight:800; letter-spacing:.13em; }.record-result h2 { margin:7px 0 16px; font-size:21px; }.record-result div { display:grid; grid-template-columns:1fr 1fr; gap:11px 18px; }.record-result div p { display:grid; gap:2px; margin:0; padding-bottom:9px; border-bottom:1px solid #dce6ef; }.record-result span { color:#718399; font-size:11px; }.record-result strong { font-size:13px; }.record-back { margin-top:21px; }
+@media(max-width:760px) { .welcome-page { padding:24px 16px; }.welcome-intro { margin-top:60px; }.welcome-options { grid-template-columns:1fr; }.welcome-option { min-height:235px; }.record-form, .record-result div { grid-template-columns:1fr; }.consent-actions { flex-direction:column-reverse; }.consent-actions button { width:100%; } }
+.welcome-home {
+  display: grid;
+  align-items: center;
+  padding: 40px 24px;
+  background: linear-gradient(110deg, #0d172955, #0d17298c), url('../assets/login-paisaje-andino.png') center / cover;
+}
+.welcome-home .welcome-shell {
+  width: min(100%, 1040px);
+  padding: 36px;
+  border: 1px solid #ffffffb3;
+  border-radius: 14px;
+  background: #f9fafcf5;
+  box-shadow: 0 24px 70px #08132640;
+}
+.welcome-home .welcome-header { padding-bottom: 26px; border-bottom: 1px solid #e2e7ef; }
+.welcome-home .welcome-header img { width: min(290px, 100%); }
+.welcome-home .welcome-header a { color: #18366b; font-size: 13px; font-weight: 500; }
+.welcome-home .welcome-header a:hover { text-decoration: underline; }
+.welcome-home .welcome-header a:focus-visible { outline: 3px solid #7698d1; outline-offset: 5px; }
+.welcome-home .welcome-intro { max-width: 640px; margin: 32px 0 26px; color: #202c42; }
+.welcome-home .welcome-intro p { color: #657187; font-size: 11px; letter-spacing: .1em; font-weight: 600; }
+.welcome-home .welcome-intro h1 { margin: 10px 0; font-size: clamp(25px, 3vw, 32px); font-weight: 600; letter-spacing: -.7px; line-height: 1.25; }
+.welcome-home .welcome-intro > span { color: #657187; font-size: 14px; line-height: 1.65; opacity: 1; }
+.welcome-home .welcome-options { gap: 16px; }
+.welcome-home .welcome-option { min-width: 0; min-height: 285px; padding: 24px 20px 20px; border: 1px solid #e2e7ef; border-radius: 8px; background: #fff; color: #202c42; box-shadow: none; }
+.welcome-home .welcome-option__symbol { width: 42px; height: 42px; margin-bottom: 22px; border-radius: 8px; color: #18366b; background: #f0f4fb; }
+.welcome-home .welcome-option__symbol ion-icon { font-size: 22px; }
+.welcome-home .welcome-option > p { color: #657187; font-size: 11px; font-weight: 500; letter-spacing: .02em; }
+.welcome-home .welcome-option h2 { margin: 7px 0 10px; font-size: 20px; font-weight: 600; letter-spacing: -.3px; }
+.welcome-home .welcome-option__description { color: #657187; font-size: 13px; line-height: 1.65; padding-bottom: 24px; }
+.welcome-home .welcome-option button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 11px 14px; border-radius: 6px; font-size: 13px; }
+.welcome-home .welcome-option button ion-icon { flex-shrink: 0; font-size: 17px; }
+.welcome-home .welcome-option .admin-primary { background: #18366b; color: #fff; }
+.welcome-home .welcome-option .admin-primary:hover { background: #102750; }
+.welcome-home .welcome-option .secondary { border: 1px solid #d5deeb; background: #fff; color: #18366b; }
+.welcome-home .welcome-option .secondary:hover { background: #f0f4fb; }
+.welcome-home .welcome-footer { margin: 26px 0 0; color: #657187; font-size: 11px; line-height: 1.6; }
+@media (max-width: 760px) {
+  .welcome-home { padding: 24px 16px; }
+  .welcome-home .welcome-shell { padding: 24px; }
+  .welcome-home .welcome-header { align-items: flex-start; flex-direction: column; gap: 20px; }
+  .welcome-home .welcome-intro { margin: 26px 0 22px; }
+  .welcome-home .welcome-options { grid-template-columns: 1fr; }
+  .welcome-home .welcome-option { min-height: 0; padding: 22px; }
+  .welcome-home .welcome-option__symbol { margin-bottom: 16px; }
+}
+.welcome-home.welcome-focused .welcome-shell { max-width: 760px; }
+.welcome-home.welcome-focused .welcome-intro { margin: 32px auto 24px; text-align: center; max-width: 500px; }
+.welcome-focused .welcome-admin-link { display: inline-flex; gap: 6px; padding: 8px 0; background: transparent; color: #657187; font-size: 12px; font-weight: 500; }
+.welcome-focused .welcome-admin-link:hover { background: transparent; color: #18366b; text-decoration: underline; }
+.welcome-registration { max-width: 480px; margin: auto; padding: 28px; border: 1px solid #e2e7ef; border-radius: 8px; background: white; text-align: center; }
+.welcome-registration-icon { display: grid; place-items: center; width: 46px; height: 46px; margin: 0 auto 16px; color: #18366b; background: #f0f4fb; border-radius: 8px; font-size: 24px; }
+.welcome-registration h2 { margin: 0 0 10px; color: #202c42; font-size: 21px; font-weight: 600; }
+.welcome-registration > p { margin: 0 0 24px; color: #657187; font-size: 13px; line-height: 1.7; }
+.welcome-registration .welcome-register-button { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; padding: 12px 18px; background: #18366b; color: white; border-radius: 6px; }
+.welcome-registration .welcome-register-button:hover { background: #102750; }
+.welcome-record-link { margin-top: 20px; color: #657187; font-size: 12px; }
+.welcome-record-link span { display: block; }
+.welcome-record-link button { margin-top: 3px; padding: 8px; min-height: 44px; background: transparent; color: #18366b; font-size: 13px; }
+.welcome-record-link button:hover { background: #f0f4fb; text-decoration: underline; }
+.church-registration-help { color: var(--muted); font-size: 12px; line-height: 1.6; font-weight: 400; }
+.church-registration-help a { color: var(--brand); text-decoration: underline; text-underline-offset: 3px; }

@@ -1,0 +1,20 @@
+.field-required-note { color: var(--muted, #657187); font-size: 12px; font-weight: 400; }
+
+/* El borde ámbar indica que falta un dato obligatorio; verde indica un valor válido. */
+form :is(input:not([type='hidden']):not([type='checkbox']):not([type='radio']), select, textarea):required:enabled:not(.field-filled):not(.field-needs-attention) {
+  border-color: #bd9660;
+}
+form :is(input, select, textarea).field-filled:enabled {
+  border-color: #579474;
+  background-color: #f5fbf7;
+}
+form :is(input, select, textarea).field-needs-attention:enabled {
+  border-color: #b4655d;
+  background-color: #fff8f7;
+}
+form :is(.input-affix, .login-input):has(input.field-filled:enabled) { border-color: #579474; background-color: #f5fbf7; }
+form :is(.input-affix, .login-input):has(input.field-needs-attention:enabled) { border-color: #b4655d; background-color: #fff8f7; }
+[data-theme='dark'] form :is(input, select, textarea).field-filled:enabled { border-color: #75b691; background-color: #183126; color: #e2f1e7; }
+[data-theme='dark'] form :is(input, select, textarea).field-needs-attention:enabled { border-color: #d18a82; background-color: #392321; color: #f7e7e5; }
+[data-theme='dark'] form :is(.input-affix, .login-input):has(input.field-filled:enabled) { border-color: #75b691; background-color: #183126; }
+[data-theme='dark'] form :is(.input-affix, .login-input):has(input.field-needs-attention:enabled) { border-color: #d18a82; background-color: #392321; }
