@@ -184,6 +184,8 @@ class MemberEventViewSet(ProtectedViewSet):
         return [(IsAuthenticated if self.action in ('list', 'retrieve') else CanManagePanel)()]
     def get_queryset(self):
         queryset = super().get_queryset()
+        if not queryset.ordered:
+            queryset = queryset.order_by('pk')
         user = self.request.user
         if user.role == 'miembro' and not user.is_superuser:
             if not user.member_id:
@@ -253,7 +255,7 @@ def session_user(request):
     if not request.user.is_authenticated:
         return JsonResponse({'detail': 'No hay una sesión activa.'}, status=401)
     user = request.user
-    return JsonResponse({'id': user.id, 'username': user.username, 'display_name': account_display_name(user), 'email': user.email, 'picture': user.profile_picture, 'role': user.role, 'member': user.member_id, 'must_link_google': user.temporary_password and not user.google_subject, 'csrfToken': get_token(request)})
+    return JsonResponse({'id': user.id, 'username': user.username, 'display_name': account_display_name(user), 'email': user.email, 'picture': user.profile_picture, 'role': user.role, 'member': user.member_id, 'can_register_pastors': user.is_superuser or user.role == 'administrador', 'must_link_google': user.temporary_password and not user.google_subject, 'csrfToken': get_token(request)})
 
 @csrf_protect
 @require_POST

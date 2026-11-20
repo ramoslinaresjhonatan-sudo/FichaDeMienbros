@@ -67,6 +67,7 @@ function callbackRegistrationResult() {
 }
 
 const initialCallbackRegistration = callbackRegistrationResult()
+const initialGoogleError = new URLSearchParams(window.location.search).get('google_error')
 
 function Registration({ onBack, backLabel, churches, departmentsData, theme, accountEmail, verifiedGoogleEmail = '', verifiedGoogleProof = '', isPastor = false, onRegistered, privacyConsent = false }) {
   const [step, setStep] = useState(0)
@@ -508,12 +509,14 @@ function App() {
     const authView = new URLSearchParams(window.location.search).get('auth')
     return authView === 'login' || authView === 'link-google' ? authView : 'welcome'
   })
-  const [registrationOrigin, setRegistrationOrigin] = useState('admin')
+  const [registrationOrigin, setRegistrationOrigin] = useState(initialCallbackRegistration ? 'welcome' : 'admin')
   const [accountEmail, setAccountEmail] = useState('')
   const [accountName, setAccountName] = useState('')
   const [accountPicture, setAccountPicture] = useState('')
   const [accountRole, setAccountRole] = useState('')
   const [accountMember, setAccountMember] = useState(null)
+  const [sessionChecked, setSessionChecked] = useState(false)
+  const [canRegisterPastors, setCanRegisterPastors] = useState(false)
   const [theme, setTheme] = useTheme()
   const [sidebarExpanded, setSidebarExpanded] = useState(() => !window.matchMedia('(max-width: 760px)').matches)
   const [sidebarHidden, setSidebarHidden] = useState(false)
@@ -574,7 +577,7 @@ function App() {
   }, [])
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
-    const googleError = params.get('google_error')
+    const googleError = initialGoogleError
     if (params.has('google_login') || googleError) window.history.replaceState(null, '', window.location.pathname)
     authService.getCurrentUser().then((user) => {
       if (sessionStorage.getItem('ficha-completar-datos') && user.member) {
@@ -586,8 +589,9 @@ function App() {
       setAccountPicture(user.picture || '')
       setAccountRole(user.role)
       setAccountMember(user.member || null)
+      setCanRegisterPastors(Boolean(user.can_register_pastors))
       setView((current) => !googleError && (current === 'login' || current === 'welcome') && window.location.pathname === '/' ? (user.must_link_google ? 'link-google' : 'admin') : current)
-    }).catch(() => {})
+    }).catch(() => {}).finally(() => setSessionChecked(true))
   }, [])
   useEffect(() => {
     if (sidebarHidden) {
@@ -611,6 +615,8 @@ function App() {
   const categoryTitle = memberCategory === 'miembros' ? activeSection.title : `Registros de ${memberCategory}`
 
   if (window.location.pathname.replace(/\/+$/, '') === '/carga') return <LoadingView theme={theme} />
+
+  if (window.location.pathname.replace(/\/+$/, '') === '/registro-pastor' && (!sessionChecked || !canRegisterPastors)) return <main className="welcome-page"><section className="consent-card"><h1>Registro de pastor</h1><p role="status">{!sessionChecked ? 'Comprobando permisos…' : 'El registro de pastores requiere una sesión de administrador. Solicita a la administración que complete tu ficha; iniciar con Google aquí no habilita ese permiso.'}</p><Button onClick={() => window.location.assign('/?auth=login')}>Ir al acceso administrativo</Button><Button variant="secondary" onClick={() => window.location.assign('/')}>Volver al inicio</Button></section></main>
 
   if (window.location.pathname.replace(/\/+$/, '') === '/registro-miembro') return directRegistrationConsent ? <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} verifiedGoogleEmail={registrationGoogleEmail} verifiedGoogleProof={returnedRegistration?.proof || ''} privacyConsent onBack={() => window.location.assign('/')} backLabel="Volver al inicio" /> : <ConsentView onAccept={beginGoogleRegistration} onBack={() => window.location.assign('/')} error={registrationGoogleError} busy={registrationGoogleBusy} />
 

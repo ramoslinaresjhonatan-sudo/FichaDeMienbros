@@ -3,6 +3,12 @@ from django.test import override_settings
 from unittest.mock import patch
 from rest_framework.test import APIClient
 from core_api.models import Department, Member, User, Church, ChurchRegistrationOrigin
+from django.core import signing
+
+
+def verified_registration(data, email='member@example.com'):
+    return {**data, 'email': email, 'google_email_proof': signing.dumps(
+        {'email': email}, salt='member-registration-google-email')}
 
 class ApiTests(TestCase):
     def setUp(self):
@@ -58,6 +64,20 @@ class ApiTests(TestCase):
     def test_pastor_cannot_manage_users(self):
         self.api.force_authenticate(self.pastor)
         self.assertEqual(self.api.get('/api/usuarios/').status_code, 403)
+
+    def test_pastor_can_register_members_but_not_pastors(self):
+        self.api.force_authenticate(self.pastor)
+        payload = {'names': 'Luis', 'paternal_surname': 'Rojas', 'identity_card': '998877',
+                   'gender': 'hombre', 'birth_date': '1990-01-01', 'privacy_consent': True}
+        self.assertEqual(self.api.post('/api/registro/', payload, format='json').status_code, 201)
+        payload.update(identity_card='998878', is_pastor=True)
+        self.assertEqual(self.api.post('/api/registro/', payload, format='json').status_code, 403)
+
+    def test_session_reports_pastor_registration_permission(self):
+        self.client.force_login(self.pastor)
+        self.assertFalse(self.client.get('/api/auth/me/').json()['can_register_pastors'])
+        self.client.force_login(self.admin)
+        self.assertTrue(self.client.get('/api/auth/me/').json()['can_register_pastors'])
 
     def test_only_admin_can_grant_or_revoke_access(self):
         self.member.email = 'ana@example.com'
@@ -151,10 +171,15 @@ class ApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(client.get('/api/miembros/').status_code, 200)
 
-    def test_public_registration_creates_pastor_member_without_login_access(self):
+    def test_only_admin_registration_creates_pastor_without_login_access(self):
         client = Client(enforce_csrf_checks=True)
         csrf = client.get('/api/auth/csrf/').json()['csrfToken']
         payload = {'names': 'María', 'paternal_surname': 'Quispe', 'identity_card': '1234567', 'gender': 'mujer', 'birth_date': '1990-04-12', 'email': 'maria@example.com', 'is_pastor': True, 'baptized': True, 'baptism_month': 5, 'baptism_year': 2015, 'father_identity_card': '000123', 'privacy_consent': True}
+        response = client.post('/api/registro/', payload, content_type='application/json', HTTP_X_CSRFTOKEN=csrf)
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(Member.objects.filter(identity_card='1234567').exists())
+        client.force_login(self.admin)
+        csrf = client.get('/api/auth/csrf/').json()['csrfToken']
         response = client.post('/api/registro/', payload, content_type='application/json', HTTP_X_CSRFTOKEN=csrf)
         self.assertEqual(response.status_code, 201, response.content)
         member = Member.objects.get(pk=response.json()['id'])
@@ -168,7 +193,7 @@ class ApiTests(TestCase):
 
     def test_registration_rejects_missing_required_fields_and_invalid_id(self):
         client = APIClient()
-        result = client.post('/api/registro/', {'names': '  ', 'identity_card': '12LP'}, format='json')
+        result = client.post('/api/registro/', verified_registration({'names': '  ', 'identity_card': '12LP'}), format='json')
         self.assertEqual(result.status_code, 400)
         self.assertIn('names', result.data)
         self.assertIn('identity_card', result.data)
@@ -265,6 +290,7 @@ class ApiTests(TestCase):
     def test_registration_rejects_under_one_and_duplicate_id(self):
         from django.utils import timezone
         data = {'names': 'Juan', 'paternal_surname': 'Pérez', 'identity_card': '123', 'gender': 'hombre', 'birth_date': str(timezone.localdate()), 'privacy_consent': True}
+        data = verified_registration(data)
         client = APIClient()
         self.assertEqual(client.post('/api/registro/', data, format='json').status_code, 400)
         data['birth_date'] = '1990-01-01'
@@ -273,17 +299,17 @@ class ApiTests(TestCase):
 
     def test_registration_rejects_officiating_pastor_when_not_baptized(self):
         payload = {'names': 'Julia', 'paternal_surname': 'Paz', 'identity_card': '9876543', 'gender': 'mujer', 'birth_date': '1990-01-01', 'baptized': False, 'pastor_name': 'Pastor Ejemplo', 'privacy_consent': True}
-        response = APIClient().post('/api/registro/', payload, format='json')
+        response = APIClient().post('/api/registro/', verified_registration(payload), format='json')
         self.assertEqual(response.status_code, 400)
         self.assertIn('pastor_name', response.data)
 
     def test_family_relationship_links_when_parent_registers_later(self):
         client = APIClient()
         child_data = {'names': 'Hija', 'paternal_surname': 'Quispe', 'identity_card': '122', 'gender': 'mujer', 'birth_date': '2000-01-01', 'father_identity_card': '144', 'privacy_consent': True}
-        child = client.post('/api/registro/', child_data, format='json')
+        child = client.post('/api/registro/', verified_registration(child_data, 'child@example.com'), format='json')
         self.assertEqual(child.status_code, 201, child.data)
         parent_data = {'names': 'Padre', 'paternal_surname': 'Quispe', 'identity_card': '144', 'gender': 'hombre', 'birth_date': '1970-01-01', 'privacy_consent': True}
-        parent = client.post('/api/registro/', parent_data, format='json')
+        parent = client.post('/api/registro/', verified_registration(parent_data, 'parent@example.com'), format='json')
         self.assertEqual(parent.status_code, 201, parent.data)
         self.assertEqual(Member.objects.get(pk=child.data['id']).father_id, parent.data['id'])
 
