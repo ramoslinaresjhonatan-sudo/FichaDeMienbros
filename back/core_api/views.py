@@ -7,6 +7,7 @@ from django.db.models.deletion import ProtectedError
 from django.db.models import Q
 from django.db import IntegrityError, transaction
 from django.core.exceptions import ValidationError
+from django.core import signing
 from django.core.validators import validate_email
 from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
@@ -278,6 +279,19 @@ def register_member(request):
         request.user.is_authenticated and (request.user.is_superuser or request.user.role == 'administrador')
     ):
         return Response({'detail': 'No tiene permiso para registrar pastores.'}, status=status.HTTP_403_FORBIDDEN)
+    may_manage_members = request.user.is_authenticated and (
+        request.user.is_superuser or request.user.role in ('administrador', 'pastor')
+    )
+    if not may_manage_members:
+        proof_input = request.data.get('google_email_proof', '')
+        if not isinstance(proof_input, str):
+            proof_input = ''
+        try:
+            proof = signing.loads(proof_input, salt='member-registration-google-email', max_age=3600)
+        except (signing.BadSignature, signing.SignatureExpired, TypeError):
+            return Response({'email': 'Verifica tu correo con Google antes de enviar el registro.'}, status=status.HTTP_400_BAD_REQUEST)
+        if not isinstance(proof, dict) or proof.get('email') != str(request.data.get('email', '')).strip().lower():
+            return Response({'email': 'El correo no coincide con la cuenta verificada de Google.'}, status=status.HTTP_400_BAD_REQUEST)
     serializer = serializers.RegistrationSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
     member = serializer.save()

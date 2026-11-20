@@ -313,15 +313,53 @@ class GoogleOAuthTests(TestCase):
     @override_settings(CORS_ALLOWED_ORIGINS=['http://localhost:5173'])
     @patch('modules.accounts.infrastructure.google_oauth.verified_identity')
     def test_registration_google_returns_email_without_logging_in(self, verify):
+        from urllib.parse import parse_qs, urlsplit
+        from django.core import signing
         self.assertEqual(self.client.get('/api/auth/google/registration/', {'origin': 'https://evil.example'}).status_code, 403)
         start = self.client.get('/api/auth/google/registration/', {'origin': 'http://localhost:5173', 'channel': 'a' * 32})
         self.assertEqual(start.status_code, 302)
         flow = self.client.session['google_oauth']
         verify.return_value = {'email': 'New@example.com', 'sub': 'google-id', 'email_verified': True}
         response = self.client.get('/api/auth/google/callback/', {'state': flow['state'], 'code': 'valid'})
-        self.assertRedirects(response, 'http://localhost:5173/?google_registration=success#email=new%40example.com&channel=' + 'a' * 32, fetch_redirect_response=False)
+        self.assertEqual(response.status_code, 302)
+        target = urlsplit(response.url)
+        self.assertEqual(target.path, '/')
+        self.assertEqual(parse_qs(target.query)['google_registration'], ['success'])
+        fragment = parse_qs(target.fragment)
+        self.assertEqual(fragment['email'], ['new@example.com'])
+        self.assertEqual(fragment['channel'], ['a' * 32])
+        self.assertEqual(signing.loads(fragment['proof'][0], salt='member-registration-google-email'), {'email': 'new@example.com'})
         self.assertEqual(self.client.get('/api/auth/me/').status_code, 401)
         self.assertFalse(User.objects.filter(email__iexact='new@example.com').exists())
+
+    def test_public_member_registration_requires_a_signed_matching_google_email(self):
+        from django.core import signing
+        from unittest.mock import patch
+        client = APIClient()
+        url = '/api/registro/'
+        payload = {'email': 'verified@example.com'}
+        self.assertEqual(client.post(url, payload, format='json').status_code, 400)
+        payload['google_email_proof'] = 123
+        self.assertEqual(client.post(url, payload, format='json').status_code, 400)
+        payload['google_email_proof'] = signing.dumps({'email': 'another@example.com'}, salt='member-registration-google-email')
+        mismatch = client.post(url, payload, format='json')
+        self.assertEqual(mismatch.status_code, 400)
+        self.assertIn('no coincide', mismatch.data['email'])
+        valid_payload = {
+            'names': 'Andrea', 'paternal_surname': 'Rojas', 'identity_card': '8877665',
+            'gender': 'mujer', 'birth_date': '1990-04-12', 'email': 'verified@example.com',
+            'privacy_consent': True,
+            'google_email_proof': signing.dumps({'email': 'verified@example.com'}, salt='member-registration-google-email'),
+        }
+        created = client.post(url, valid_payload, format='json')
+        self.assertEqual(created.status_code, 201, created.data)
+        payload['email'] = 'verified@example.com'
+        with patch('django.core.signing.time.time', return_value=10000):
+            payload['google_email_proof'] = signing.dumps({'email': 'verified@example.com'}, salt='member-registration-google-email')
+        with patch('django.core.signing.time.time', return_value=13601):
+            expired = client.post(url, payload, format='json')
+        self.assertEqual(expired.status_code, 400)
+        self.assertIn('Verifica tu correo', expired.data['email'])
 
     @override_settings(CORS_ALLOWED_ORIGINS=['http://localhost:5173'])
     @patch('modules.accounts.infrastructure.google_oauth.verified_identity')

@@ -20,6 +20,16 @@
 .welcome-home.welcome-focused .welcome-intro { margin: 40px auto 26px; }
 .welcome-home .welcome-intro h1 { font-size: 28px; }
 .welcome-home .welcome-intro > p { display: none; }
+.welcome-home .welcome-auth-error {
+  margin: 0 0 24px;
+  padding: 12px 14px;
+  border: 1px solid #d89a9a;
+  border-radius: 5px;
+  color: #8a1f1f;
+  background: #fff6f6;
+  font-size: 13px;
+  line-height: 1.45;
+}
 .welcome-home .welcome-registration {
   max-width: 380px;
   padding: 0;
@@ -46,6 +56,40 @@
 .welcome-page .consent-actions button,
 .welcome-page .record-form button,
 .welcome-page .record-back { border-radius: 5px; box-shadow: none; }
+.welcome-page .consent-actions .consent-continue:disabled {
+  cursor: not-allowed;
+  border-color: #c7d0db;
+  background: #e7ebf0;
+  color: #7a8796;
+  opacity: 1;
+}
+.welcome-page .consent-actions .consent-continue:disabled svg {
+  filter: grayscale(1) brightness(.65);
+  opacity: .78;
+}
+.welcome-page .consent-actions .consent-continue:not(:disabled) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-color: #dadce0;
+  background: #f8fafd;
+  color: #3c4043;
+  font-family: Roboto, Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.welcome-page .consent-actions .consent-continue:not(:disabled):hover {
+  border-color: #dadce0;
+  background: #f8fafd;
+  box-shadow: 0 1px 2px rgb(60 64 67 / 30%);
+}
+.welcome-page .consent-actions .consent-continue svg {
+  width: 20px;
+  height: 20px;
+}
 .public-church-page > .public-church-header,
 .public-church-page > .public-church-hero,
 .public-church-page > .public-church-layout { max-width: 1040px; background: #fff; margin: 0 auto; padding: 24px 30px; border-inline: 1px solid #e2e7ef; }

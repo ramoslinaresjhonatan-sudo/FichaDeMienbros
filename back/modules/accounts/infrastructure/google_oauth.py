@@ -8,6 +8,7 @@ from urllib.parse import urlencode, urlsplit
 import requests
 from django.conf import settings
 from django.contrib.auth import login
+from django.core import signing
 from django.db import IntegrityError, transaction
 from django.http import JsonResponse
 from django.shortcuts import redirect
@@ -22,10 +23,23 @@ from core_api.models import User
 
 AUTHORIZE_URL = 'https://accounts.google.com/o/oauth2/v2/auth'
 TOKEN_URL = 'https://oauth2.googleapis.com/token'
+PUBLIC_REGISTRATION_PATHS = {'/', '/registro-miembro', '/registro-pastor'}
 
 
-def failure(reason):
-    return redirect(f'{settings.FRONTEND_URL}/?google_error={reason}')
+def failure(reason, destination='login'):
+    """Vuelve a la vista de acceso y muestra un error seguro para el usuario."""
+    return redirect(f'{settings.FRONTEND_URL}/?{urlencode({"google_error": reason, "auth": destination})}')
+
+
+def registration_result_redirect(origin, path, result, channel, email='', proof='', popup=False):
+    """Devuelve el resultado al formulario público que inició el flujo OAuth."""
+    params = {'channel': channel}
+    if email:
+        params['email'] = email
+    if proof:
+        params['proof'] = proof
+    popup_query = '&google_popup=1' if popup else ''
+    return redirect(f'{origin}{path}?google_registration={result}{popup_query}#{urlencode(params)}')
 
 
 def authorization_url(request, link_user_id=None, registration=False):
@@ -66,11 +80,16 @@ def google_registration_start(request):
     channel = request.GET.get('channel', '')
     if not re.fullmatch(r'[a-f0-9]{32}', channel):
         return JsonResponse({'detail': 'Solicitud de registro inválida.'}, status=400)
+    return_path = request.GET.get('return_path', '/')
+    if return_path not in PUBLIC_REGISTRATION_PATHS:
+        return JsonResponse({'detail': 'Ruta de retorno inválida.'}, status=400)
     url = authorization_url(request, registration=True)
     if not url:
-        return redirect(f'{origin}/?google_registration=error#{urlencode({"channel": channel})}')
+        return registration_result_redirect(origin, return_path, 'error', channel)
     request.session['google_oauth']['return_origin'] = origin
+    request.session['google_oauth']['return_path'] = return_path
     request.session['google_oauth']['channel'] = channel
+    request.session['google_oauth']['popup'] = request.GET.get('popup') == '1'
     request.session.modified = True
     return redirect(url)
 
@@ -113,29 +132,35 @@ def google_callback(request):
     state = request.GET.get('state', '')
     code = request.GET.get('code', '')
     registration = bool(flow and flow.get('registration'))
+    failure_destination = 'link-google' if flow and flow.get('link_user_id') else 'login'
     return_origin = flow.get('return_origin', settings.FRONTEND_URL) if flow else settings.FRONTEND_URL
+    return_path = flow.get('return_path', '/') if flow else '/'
     channel = flow.get('channel', '') if flow else ''
+    popup = bool(flow and flow.get('popup'))
     if return_origin not in settings.CORS_ALLOWED_ORIGINS:
         return_origin = settings.FRONTEND_URL
+    if return_path not in PUBLIC_REGISTRATION_PATHS:
+        return_path = '/'
     if not flow or not state or not constant_time_compare(state, flow['state']) or time.time() - flow['created'] > 600 or not code:
         if registration:
-            return redirect(f'{return_origin}/?google_registration=error#{urlencode({"channel": channel})}')
-        return failure('invalid')
+            return registration_result_redirect(return_origin, return_path, 'error', channel, popup=popup)
+        return failure('invalid', failure_destination)
     try:
         claims = verified_identity(code, flow)
         email = claims['email'].strip().lower()
         if registration:
-            return redirect(f'{return_origin}/?google_registration=success#{urlencode({"email": email, "channel": channel})}')
+            proof = signing.dumps({'email': email}, salt='member-registration-google-email')
+            return registration_result_redirect(return_origin, return_path, 'success', channel, email, proof, popup)
         with transaction.atomic():
             link_user_id = flow.get('link_user_id')
             if link_user_id:
                 if not request.user.is_authenticated or request.user.pk != link_user_id:
-                    return failure('invalid')
+                    return failure('invalid', failure_destination)
                 user = User.objects.select_for_update().filter(pk=link_user_id, is_active=True, email__iexact=email).first()
             else:
                 user = User.objects.select_for_update().filter(email__iexact=email, is_active=True).first()
             if not user or (user.google_subject and user.google_subject != claims['sub']):
-                return failure('unauthorized')
+                return failure('unauthorized', failure_destination)
             picture = claims.get('picture', '')
             parsed = urlsplit(picture if isinstance(picture, str) else '')
             if parsed.scheme != 'https' or not parsed.hostname or not parsed.hostname.endswith('.googleusercontent.com'):
@@ -151,6 +176,6 @@ def google_callback(request):
         login(request, user, backend='django.contrib.auth.backends.ModelBackend')
     except (requests.RequestException, GoogleAuthError, ValueError, KeyError, IntegrityError):
         if registration:
-            return redirect(f'{return_origin}/?google_registration=error#{urlencode({"channel": channel})}')
-        return failure('failed')
+            return registration_result_redirect(return_origin, return_path, 'error', channel, popup=popup)
+        return failure('failed', failure_destination)
     return redirect(f'{settings.FRONTEND_URL}/?google_login=success')

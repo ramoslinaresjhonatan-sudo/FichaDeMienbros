@@ -44,7 +44,31 @@ defineCustomElement()
 
 const sectionIcons = { miembros: peopleOutline, mificha: documentTextOutline, pastores: personOutline, iglesias: homeOutline, accesos: shieldCheckmarkOutline, estadisticas: statsChartOutline }
 
-function Registration({ onBack, backLabel, churches, departmentsData, theme, accountEmail, isPastor = false, onRegistered, privacyConsent = false }) {
+function googleErrorMessage(error) {
+  const messages = {
+    unauthorized: 'La cuenta de Google seleccionada no está autorizada para ingresar. Usa el correo registrado en tu ficha o comunícate con el administrador.',
+    invalid: 'El inicio de sesión con Google fue cancelado o venció. Puedes intentarlo nuevamente.',
+    failed: 'No fue posible verificar las credenciales de Google. Inténtalo de nuevo en unos momentos.',
+  }
+  return messages[error] || 'No fue posible iniciar sesión con Google. Inténtalo nuevamente.'
+}
+
+function callbackRegistrationResult() {
+  const params = new URLSearchParams(window.location.search)
+  const result = params.get('google_registration')
+  if (!result) return null
+  const hash = new URLSearchParams(window.location.hash.slice(1))
+  const email = hash.get('email') || ''
+  const proof = hash.get('proof') || ''
+  const channel = hash.get('channel') || ''
+  const popup = params.get('google_popup') === '1'
+  window.history.replaceState(null, '', window.location.pathname)
+  return { result: result === 'success' && !proof ? 'error' : result, email: proof ? email : '', proof, channel, popup }
+}
+
+const initialCallbackRegistration = callbackRegistrationResult()
+
+function Registration({ onBack, backLabel, churches, departmentsData, theme, accountEmail, verifiedGoogleEmail = '', verifiedGoogleProof = '', isPastor = false, onRegistered, privacyConsent = false }) {
   const [step, setStep] = useState(0)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -54,6 +78,8 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
   const [emailUser, setEmailUser] = useState('')
   const [emailMode, setEmailMode] = useState('manual')
   const [googleEmail, setGoogleEmail] = useState('')
+  const [googleProof, setGoogleProof] = useState('')
+  const [privacyAccepted, setPrivacyAccepted] = useState(false)
   const [googleError, setGoogleError] = useState('')
   const googlePopupRef = useRef(null)
   const googleChannelRef = useRef('')
@@ -70,8 +96,9 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
       if (data?.type !== 'ficha-google-email' || !googleChannelRef.current || data.channel !== googleChannelRef.current) return
       googleChannelRef.current = ''
       googlePopupRef.current = null
-      if (data.result === 'success' && typeof data.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      if (data.result === 'success' && typeof data.email === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && typeof data.proof === 'string' && data.proof) {
         setGoogleEmail(data.email)
+        setGoogleProof(data.proof || '')
         setEmailMode('google')
         setGoogleError('')
       } else setGoogleError('No se pudo obtener el correo de Google. Intenta otra vez o escríbelo manualmente.')
@@ -94,6 +121,8 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
     const url = new URL(googleStartUrl)
     url.pathname = url.pathname.replace(/\/start\/?$/, '/registration/')
     url.searchParams.set('origin', window.location.origin)
+    url.searchParams.set('return_path', window.location.pathname === '/' ? '/registro-miembro' : window.location.pathname)
+    url.searchParams.set('popup', '1')
     const channel = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
     googleChannelRef.current = channel
     url.searchParams.set('channel', channel)
@@ -160,8 +189,11 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
       church: value('iglesia') ? Number(value('iglesia')) : null, is_pastor: isPastor, baptized,
       baptism_month: baptized && value('mesBautismo') ? Number(value('mesBautismo')) : null,
       baptism_year: baptized && value('anioBautismo') ? Number(value('anioBautismo')) : null,
-      pastor_name: baptized ? value('pastorOficiante') : '', admission_method: baptized ? admissionMethods[value('formaAdmision')] || '' : '', privacy_consent: privacyConsent,
+      pastor_name: baptized ? value('pastorOficiante') : '', admission_method: baptized ? admissionMethods[value('formaAdmision')] || '' : '', privacy_consent: privacyConsent || privacyAccepted,
     }
+    if (privacyConsent) payload.google_email_proof = verifiedGoogleProof
+    else if (emailMode === 'google') payload.google_email_proof = googleProof
+    if (!payload.privacy_consent) { setSubmitError('Debes confirmar que la persona acepta el tratamiento de sus datos.'); return }
     if (isPastor && !payload.email) { setSubmitError('El correo es obligatorio para registrar un pastor.'); setStep(1); return }
     setSubmitError('')
     setLoading(true)
@@ -206,6 +238,7 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
     <div className="fields two-columns" key="contacto">
       <label className="field"><span>Teléfono o celular</span><div className="input-affix"><span aria-hidden="true">+591</span><input aria-label="Teléfono o celular, prefijo +591" type="tel" inputMode="numeric" placeholder="70000000" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, ''))} /></div><input type="hidden" name="telefono" value={phone ? `+591${phone}` : ''} /></label>
       <div className="field email-field"><span>Correo electrónico</span>
+        {privacyConsent ? <><input aria-label="Correo verificado con Google" type="email" value={verifiedGoogleEmail} readOnly /><input type="hidden" name="correo" value={verifiedGoogleEmail} /><small className="field-note">Correo verificado con Google.</small></> : <>
         <div className="email-options" aria-label="Opciones de correo">
           <Button variant="bare" className={emailMode === 'manual' ? 'is-active' : ''} aria-pressed={emailMode === 'manual'} onClick={() => setEmailMode('manual')}>Escribir Gmail</Button>
           <Button variant="bare" className={`email-google-button ${emailMode === 'google' ? 'is-active' : ''}`} aria-pressed={emailMode === 'google'} onClick={chooseGoogleEmail}><svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.19 3.32v2.76h3.56c2.08-1.92 3.27-4.75 3.27-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.11A6.61 6.61 0 0 1 5.5 12c0-.73.13-1.44.34-2.11V7.05H2.18a11 11 0 0 0 0 9.9z"/><path fill="#EA4335" d="M12 5.36c1.62 0 3.06.56 4.2 1.64l3.15-3.15A10.57 10.57 0 0 0 12 1a11 11 0 0 0-9.82 6.05l3.66 2.84C6.71 7.29 9.14 5.36 12 5.36z"/></svg>Continuar con Google</Button>
@@ -214,6 +247,7 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
         {emailMode === 'manual' ? <><div className="input-affix"><input aria-label="Parte del correo antes de arroba Gmail" type="text" autoComplete="off" placeholder="Ej. juan.perez" pattern="[A-Za-z0-9]+([.][A-Za-z0-9]+)*" title="Escribe la parte anterior a @gmail.com, usando letras, números y puntos entre caracteres." value={emailUser} onChange={(event) => setEmailUser(event.target.value.split('@')[0].replace(/\s/g, ''))} /><span aria-hidden="true">@gmail.com</span></div><small className="field-note">Escribe solo la parte anterior a @gmail.com.</small></> : <input aria-label="Correo seleccionado" type="email" value={emailMode === 'google' ? googleEmail : accountEmail} readOnly />}
         <input type="hidden" name="correo" value={emailMode === 'google' ? googleEmail : emailMode === 'account' ? accountEmail : emailUser ? `${emailUser}@gmail.com` : ''} />
         {googleError && <small className="church-error" role="alert">{googleError}</small>}
+        </>}
       </div>
       <Field label="Dirección de domicilio" name="direccion" className="full" placeholder="Zona, calle, número y referencia" />
       <label className="field"><span>Departamento</span><select name="departamento" defaultValue=""><option value="">Seleccione un departamento</option>{departments.map((department) => <option key={department} value={department}>{department}</option>)}</select></label>
@@ -276,6 +310,7 @@ function Registration({ onBack, backLabel, churches, departmentsData, theme, acc
         <Alert>{submitError}</Alert>
         <footer className="form-actions">
           {step > 0 ? <Button variant="secondary" onClick={() => setStep((current) => current - 1)}>← Anterior</Button> : <span />}
+          {isLastStep && !privacyConsent && <label className="consent-check registration-consent-check"><input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} /><span>La persona acepta el tratamiento de sus datos personales para los fines indicados.</span></label>}
           {isLastStep ? <Button key="finalizar" variant="bare" type="submit">Finalizar registro →</Button> : <Button key="continuar" variant="bare" onClick={nextStep}>Continuar →</Button>}
         </footer>
         </div>
@@ -467,7 +502,12 @@ function EventModal({ onClose, ...props }) {
 }
 
 function App() {
-  const [view, setView] = useState('welcome')
+  const [returnedRegistration] = useState(initialCallbackRegistration)
+  const [view, setView] = useState(() => {
+    if (initialCallbackRegistration) return initialCallbackRegistration.result === 'success' ? 'registro' : 'consent'
+    const authView = new URLSearchParams(window.location.search).get('auth')
+    return authView === 'login' || authView === 'link-google' ? authView : 'welcome'
+  })
   const [registrationOrigin, setRegistrationOrigin] = useState('admin')
   const [accountEmail, setAccountEmail] = useState('')
   const [accountName, setAccountName] = useState('')
@@ -487,10 +527,24 @@ function App() {
   const [showPassword, setShowPassword] = useState(false)
   const [loginError, setLoginError] = useState(() => {
     const error = new URLSearchParams(window.location.search).get('google_error')
-    return error ? (error === 'unauthorized' ? 'La cuenta de Google no coincide con el correo autorizado para tu usuario.' : 'No se pudo vincular o iniciar sesión con Google. Inténtalo de nuevo.') : ''
+    return error ? googleErrorMessage(error) : ''
   })
   const [linkBusy, setLinkBusy] = useState(false)
-  const [directRegistrationConsent, setDirectRegistrationConsent] = useState(false)
+  const [directRegistrationConsent] = useState(() => returnedRegistration?.result === 'success')
+  const [registrationGoogleEmail] = useState(() => returnedRegistration?.result === 'success' ? returnedRegistration.email : '')
+  const [registrationGoogleError, setRegistrationGoogleError] = useState(() => returnedRegistration?.result && returnedRegistration.result !== 'success' ? 'No se pudo verificar el correo de Google. Inténtalo nuevamente.' : '')
+  const [registrationGoogleBusy, setRegistrationGoogleBusy] = useState(false)
+  function beginGoogleRegistration() {
+    setRegistrationGoogleError('')
+    const url = new URL(googleStartUrl)
+    url.pathname = url.pathname.replace(/\/start\/?$/, '/registration/')
+    url.searchParams.set('origin', window.location.origin)
+    url.searchParams.set('return_path', window.location.pathname === '/' ? '/registro-miembro' : window.location.pathname)
+    const channel = Array.from(crypto.getRandomValues(new Uint8Array(16)), byte => byte.toString(16).padStart(2, '0')).join('')
+    url.searchParams.set('channel', channel)
+    setRegistrationGoogleBusy(true)
+    window.location.assign(url.toString())
+  }
   useEffect(() => {
     function updateField(event) {
       const field = event.target
@@ -513,6 +567,12 @@ function App() {
   const [copyMessage, setCopyMessage] = useState('')
   const [showPastorLink, setShowPastorLink] = useState(false)
   useEffect(() => {
+    if (initialCallbackRegistration?.popup && window.opener) {
+      window.opener.postMessage({ type: 'ficha-google-email', ...initialCallbackRegistration }, window.location.origin)
+      window.close()
+    }
+  }, [])
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const googleError = params.get('google_error')
     if (params.has('google_login') || googleError) window.history.replaceState(null, '', window.location.pathname)
@@ -526,7 +586,7 @@ function App() {
       setAccountPicture(user.picture || '')
       setAccountRole(user.role)
       setAccountMember(user.member || null)
-      setView((current) => (current === 'login' || current === 'welcome') && window.location.pathname === '/' ? (user.must_link_google ? 'link-google' : 'admin') : current)
+      setView((current) => !googleError && (current === 'login' || current === 'welcome') && window.location.pathname === '/' ? (user.must_link_google ? 'link-google' : 'admin') : current)
     }).catch(() => {})
   }, [])
   useEffect(() => {
@@ -552,19 +612,19 @@ function App() {
 
   if (window.location.pathname.replace(/\/+$/, '') === '/carga') return <LoadingView theme={theme} />
 
-  if (window.location.pathname.replace(/\/+$/, '') === '/registro-miembro') return directRegistrationConsent ? <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} privacyConsent onBack={() => window.location.assign('/')} backLabel="Volver al inicio" /> : <ConsentView onAccept={() => setDirectRegistrationConsent(true)} onBack={() => window.location.assign('/')} />
+  if (window.location.pathname.replace(/\/+$/, '') === '/registro-miembro') return directRegistrationConsent ? <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} verifiedGoogleEmail={registrationGoogleEmail} verifiedGoogleProof={returnedRegistration?.proof || ''} privacyConsent onBack={() => window.location.assign('/')} backLabel="Volver al inicio" /> : <ConsentView onAccept={beginGoogleRegistration} onBack={() => window.location.assign('/')} error={registrationGoogleError} busy={registrationGoogleBusy} />
 
-  if (window.location.pathname.replace(/\/+$/, '') === '/registro-pastor') return directRegistrationConsent ? <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} isPastor privacyConsent onBack={() => window.location.assign('/')} backLabel="Volver al inicio" /> : <ConsentView onAccept={() => setDirectRegistrationConsent(true)} onBack={() => window.location.assign('/')} />
+  if (window.location.pathname.replace(/\/+$/, '') === '/registro-pastor') return directRegistrationConsent ? <Registration churches={churches} departmentsData={departmentsData} theme="light" accountEmail={accountEmail} verifiedGoogleEmail={registrationGoogleEmail} verifiedGoogleProof={returnedRegistration?.proof || ''} isPastor privacyConsent onBack={() => window.location.assign('/')} backLabel="Volver al inicio" /> : <ConsentView onAccept={beginGoogleRegistration} onBack={() => window.location.assign('/')} error={registrationGoogleError} busy={registrationGoogleBusy} isPastor />
 
   if (window.location.pathname.replace(/\/+$/, '') === '/iglesias') return <PublicChurchDirectory />
 
-  if (view === 'registro') return <Registration churches={churches} departmentsData={departmentsData} theme={registrationOrigin === 'admin' ? theme : 'light'} accountEmail={accountEmail} privacyConsent onRegistered={refreshPanel} onBack={() => setView(registrationOrigin)} backLabel={registrationOrigin === 'admin' ? 'Volver al panel' : 'Volver al inicio'} />
+  if (view === 'registro') return <Registration churches={churches} departmentsData={departmentsData} theme={registrationOrigin === 'admin' ? theme : 'light'} accountEmail={accountEmail} verifiedGoogleEmail={registrationGoogleEmail} verifiedGoogleProof={returnedRegistration?.proof || ''} privacyConsent={registrationOrigin !== 'admin'} onRegistered={refreshPanel} onBack={() => setView(registrationOrigin)} backLabel={registrationOrigin === 'admin' ? 'Volver al panel' : 'Volver al inicio'} />
 
-  if (view === 'consent') return <ConsentView onAccept={() => setView('registro')} onBack={() => setView('welcome')} />
+  if (view === 'consent') return <ConsentView onAccept={beginGoogleRegistration} onBack={() => setView('welcome')} error={registrationGoogleError} busy={registrationGoogleBusy} />
 
   if (view === 'record') return <MemberRecordView onBack={() => setView('welcome')} />
 
-  if (view === 'welcome') return <WelcomeView onAdmin={() => setView('login')} onRecord={() => setView('record')} onRegister={() => { setRegistrationOrigin('welcome'); setView('consent') }} />
+  if (view === 'welcome') return <WelcomeView error={loginError} onAdmin={() => setView('login')} onRecord={() => setView('record')} onRegister={() => window.location.assign('/registro-miembro')} />
 
   if (view === 'link-google') return <GoogleLinkView error={loginError} busy={linkBusy} onLink={async () => { setLoginError(''); setLinkBusy(true); try { const result = await authService.beginGoogleLink(); window.location.assign(result.url) } catch (error) { setLoginError(error.message || 'No se pudo iniciar la vinculación.'); setLinkBusy(false) } }} onLogout={async () => { try { await authService.logout(); setAccountEmail(''); setAccountName(''); setAccountPicture(''); setAccountRole(''); setLoginError(''); setView('login') } catch (error) { setLoginError(error.message || 'No se pudo cerrar sesión.') } }} />
 
@@ -594,7 +654,7 @@ function App() {
         </form>
         <div className="login-divider"><span>o</span></div>
         <Button variant="bare" className="google-login" onClick={() => window.location.assign(googleStartUrl)}><svg aria-hidden="true" viewBox="0 0 24 24" width="19" height="19"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.19 3.32v2.76h3.56c2.08-1.92 3.27-4.75 3.27-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.56-2.76c-.98.66-2.23 1.06-3.72 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M5.84 14.11A6.61 6.61 0 0 1 5.5 12c0-.73.13-1.44.34-2.11V7.05H2.18a11 11 0 0 0 0 9.9z"/><path fill="#EA4335" d="M12 5.36c1.62 0 3.06.56 4.2 1.64l3.15-3.15A10.57 10.57 0 0 0 12 1a11 11 0 0 0-9.82 6.05l3.66 2.84C6.71 7.29 9.14 5.36 12 5.36z"/></svg>Continuar con Google</Button>
-        <div className="registration-access"><span>¿Necesitas completar una ficha?</span><Button variant="bare" className="registration-link" onClick={() => { setRegistrationOrigin('login'); setView('registro') }}><ion-icon src={documentTextOutline} aria-hidden="true" /><span>Completar ficha de miembro</span><ion-icon src={arrowForwardOutline} aria-hidden="true" /></Button></div>
+        <div className="registration-access"><span>¿Necesitas completar una ficha?</span><Button variant="bare" className="registration-link" onClick={() => { setRegistrationOrigin('login'); setView('consent') }}><ion-icon src={documentTextOutline} aria-hidden="true" /><span>Completar ficha de miembro</span><ion-icon src={arrowForwardOutline} aria-hidden="true" /></Button></div>
       </div>
     </main>
   )
